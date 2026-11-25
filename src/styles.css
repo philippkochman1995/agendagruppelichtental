@@ -700,14 +700,16 @@ button { color: inherit; }
   translate: -50% -100%; margin-top: -8px; white-space: nowrap; cursor: pointer; pointer-events: auto;
   border: 0; border-radius: 999px; background: var(--paper, #fffdf8); color: #2b2b27; padding: 8px 16px;
   box-shadow: 0 4px 14px rgba(31, 31, 29, .2);
-  transition: box-shadow .15s ease-out, scale .15s ease-out;
+  transition: box-shadow .15s ease-out, margin .2s cubic-bezier(.3, .8, .3, 1);
 }
 .iso-area::after {
   content: ''; position: absolute; left: 50%; bottom: -7px; width: 14px; height: 14px; margin-left: -7px;
   background: var(--paper, #fffdf8); transform: rotate(45deg); border-radius: 2px;
 }
-/* hover: no growing (it made the bubbles jump), only the yellow frame, which runs round the arrow too */
-.iso-area:hover, .iso-area.is-hover { background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
+/* hover: a small move towards its area (no growing), plus the yellow frame, which runs round the arrow too */
+.iso-area:hover, .iso-area.is-hover { margin-top: -10px; background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
+.iso-area.side-left:hover, .iso-area.side-left.is-hover { margin: 0 0 0 5px; }
+.iso-area.side-right:hover, .iso-area.side-right.is-hover { margin: 0 0 0 -5px; }
 .iso-area:hover::after, .iso-area.is-hover::after { background: #fff4d6; box-shadow: 2px 2px 0 0 #ffc24a; }
 .iso-area.side-left:hover::after, .iso-area.side-left.is-hover::after { box-shadow: 2px -2px 0 0 #ffc24a; }
 .iso-area.side-right:hover::after, .iso-area.side-right.is-hover::after { box-shadow: -2px 2px 0 0 #ffc24a; }
@@ -1178,7 +1180,7 @@ button { color: inherit; }
   border: 8px solid transparent; border-bottom: 0; border-top-color: rgba(20, 82, 59, .95);
 }
 @keyframes start-hint-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
-.iso-area { transition: box-shadow .15s ease-out, scale .15s ease-out, opacity .5s ease; }
+.iso-area { transition: box-shadow .15s ease-out, margin .2s cubic-bezier(.3, .8, .3, 1), opacity .5s ease; }
 .map-stage.is-start-hint .iso-area { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .start-hint { animation: none; } }
 
@@ -1191,17 +1193,24 @@ button { color: inherit; }
   .iso-controls .mapboxgl-ctrl-bottom-left { display: none; }
 }
 
-/* start button: while the map loads behind it, it fills up like a loading bar; once full it is ready */
-.intro-poster .intro-button { position: relative; overflow: hidden; isolation: isolate; }
+/* start button: while the map loads behind it, it fills up like a loading bar (--load, driven smoothly from script); once full it is ready */
+.intro-poster .intro-button { position: relative; overflow: hidden; isolation: isolate; background: rgba(23, 96, 63, .38); }
 .intro-poster .intro-button::before {
-  content: ''; position: absolute; inset: 0 auto 0 0; z-index: -1; width: 100%; border-radius: 0;
-  background: #17603f; transition: width .45s cubic-bezier(.3, .8, .3, 1);
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: 0; background: #17603f;
+  transform-origin: left center; transform: scaleX(var(--load, 0));
 }
-.intro-poster .intro-button[data-wait] { opacity: 1; background: rgba(23, 96, 63, .38); }
-.intro-poster .intro-button[data-wait]::before { width: 92%; animation: intro-load 7s cubic-bezier(.2, .7, .3, 1) both; }
-@keyframes intro-load { from { width: 6%; } to { width: 92%; } }
+.intro-poster .intro-button[data-wait] { opacity: 1; }
 .intro-poster .intro-button:hover:not(:disabled)::before, .intro-poster .intro-button:focus-visible::before { background: #1f7a50; }
-@media (prefers-reduced-motion: reduce) { .intro-poster .intro-button[data-wait]::before { animation: none; } }
+/* ready: now and then a small nudge of the arrow, like "here I am" */
+.intro-poster .intro-button.is-ready:not(:hover) span:last-child { animation: intro-ready 4.2s ease-in-out 1.2s infinite; }
+@keyframes intro-ready {
+  0%, 78%, 100% { transform: none; }
+  84% { transform: translateX(.35em); }
+  88% { transform: translateX(.05em); }
+  92% { transform: translateX(.3em); }
+  96% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .intro-poster .intro-button.is-ready span:last-child { animation: none; } }
 
 /* info about the project: a button at the top right of the start view, the text in a calm panel */
 .about-trigger {

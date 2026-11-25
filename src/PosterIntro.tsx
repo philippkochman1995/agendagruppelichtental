@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { IntroClouds } from './IntroClouds'
 
 interface PosterIntroProps {
@@ -44,9 +45,32 @@ export function PosterUnicorn() {
   )
 }
 
+/**
+ * The start button fills like a loading bar while the map loads behind it: smoothly towards the end while waiting,
+ * then quickly to full once everything is there. Ready, it gives a small nudge now and then.
+ */
 export function PosterButton({ onEnter, waiting, leaving }: PosterIntroProps) {
+  const button = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const element = button.current
+    if (!element) return
+    let progress = Number(element.style.getPropertyValue('--load')) || 0
+    let last = performance.now()
+    let frame = 0
+    const step = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000)
+      last = now
+      // waiting: ease towards 94 % (never quite there); ready: glide to full in about half a second
+      progress = waiting ? progress + (0.94 - progress) * (1 - Math.exp(-dt / 2.4)) : Math.min(1, progress + dt * 2.2)
+      element.style.setProperty('--load', progress.toFixed(4))
+      if (waiting || progress < 1) frame = requestAnimationFrame(step)
+      else element.classList.add('is-ready')
+    }
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  }, [waiting])
   return (
-    <button className="intro-button poster-button" type="button" aria-label="Supergrätzl entdecken" onClick={onEnter} disabled={waiting || leaving} data-wait={waiting ? '' : undefined} autoFocus>
+    <button ref={button} className="intro-button poster-button" type="button" aria-label="Supergrätzl entdecken" onClick={onEnter} disabled={waiting || leaving} data-wait={waiting ? '' : undefined} autoFocus>
       <span>Supergrätzl entdecken</span><span aria-hidden="true">→</span>
     </button>
   )

@@ -1551,7 +1551,14 @@ export class IsoMap {
       for (const entry of entries) {
         const y = Math.max(entry.y, last + 58)
         last = y
-        const x = side === 'left' ? Math.max(16, left - 22) : Math.min(width - 16, right + 22)
+        // dock onto the edge of the Grätzl at the bubble's own height (the Grätzl is slanted, its widest point is far off)
+        const crossings: number[] = []
+        for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+          const a = outline[j], b = outline[i]
+          if ((a.y > y) !== (b.y > y)) crossings.push(a.x + ((y - a.y) / (b.y - a.y)) * (b.x - a.x))
+        }
+        const edge = crossings.length ? (side === 'left' ? Math.min(...crossings) : Math.max(...crossings)) : (side === 'left' ? left : right)
+        const x = side === 'left' ? Math.max(16, edge - 10) : Math.min(width - 16, edge + 10)
         const tip = this.zones[entry.index].tip
         tip.classList.toggle('side-left', side === 'left')
         tip.classList.toggle('side-right', side === 'right')

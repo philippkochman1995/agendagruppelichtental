@@ -20,7 +20,7 @@ export const PARK_FOCUS = { x: 8, y: -5, width: 260, height: 270 }
 export const tourSteps: TourStep[] = [
   {
     concept: 'bestand',
-    title: 'Bestand',
+    title: 'Aktuell',
     text: 'Heute nehmen Fahrbahnen und parkende Autos den Platz ein, den die Ideen der Nachbar:innen brauchen: Bäume, Sitzplätze, Spielflächen. Ohne neues Verkehrskonzept bleibt für mehr Lebensqualität zu wenig Raum.',
     focus: 'all',
     pedestrians: false,

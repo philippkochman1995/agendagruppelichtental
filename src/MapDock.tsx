@@ -80,7 +80,7 @@ const modeOptions: Option<AppMode>[] = [
 ]
 export type GarageView = 'bestand' | 'neu'
 const trafficOptions: Option<TrafficMode>[] = [
-  { value: 'bestand', label: 'Bestand' },
+  { value: 'bestand', label: 'Aktuell' },
   { value: 'neu', label: 'Supergrätzl' },
 ]
 
@@ -99,7 +99,7 @@ export interface TourInsets { sideWidth?: number; bottom?: number }
 
 /**
  * Bottom centre, small: what do I look at? Grätzl-Ideen, Verkehr, Bäume or Garagen.
- * Verkehr, Bäume and Garagen each have a quiet switch at the top centre (Bestand | Neu, Aktuell | Neu) and a short guided
+ * Verkehr, Bäume and Garagen each have a quiet switch at the top centre (Aktuell | Supergrätzl) and a short guided
  * tour (Weiter) in a card: at the side next to the Grätzl on wide screens, above the main switch on phones.
  */
 export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep, onTourClose, onTourInsets, cardLeft, treeStep, onTreeStep, onTreeClose, treesView, onTreesView, garageStep, onGarageStep, onGarageClose, garageView, onGarageView }: {
@@ -183,7 +183,7 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
       )}
       {mode === 'garages' && (
         <div className="map-top">
-          <SegmentedControl options={trafficOptions} value={garageStep !== null ? 'neu' : garageView} onChange={onGarageView} label="Garagen: Bestand oder neu" size="sm" tone={garageStep !== null || garageView === 'neu' ? 'blue' : undefined} />
+          <SegmentedControl options={trafficOptions} value={garageStep !== null ? 'neu' : garageView} onChange={onGarageView} label="Garagen: aktuell oder Supergrätzl" size="sm" tone={garageStep !== null || garageView === 'neu' ? 'blue' : undefined} />
           <button type="button" className={`tour-info ${garageStep !== null ? 'is-on' : ''}`} aria-pressed={garageStep !== null} aria-label="Garagen-Initiative erklären" onClick={() => (garageStep === null ? onGarageStep(0) : onGarageClose())}>?</button>
         </div>
       )}
