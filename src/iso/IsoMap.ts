@@ -1301,18 +1301,6 @@ export class IsoMap {
     }
   }
 
-  private skyOn = false
-  private skyTilt = 0
-  private skyAnim: { from: number; to: number; start: number; duration: number } | null = null
-
-  /** Info view: tilt the camera up from the map towards the sky (and back down); the map does not move meanwhile */
-  setSkyLook(on: boolean, duration = 1400) {
-    this.skyOn = on
-    this.zoomTarget = null
-    this.hideInfoTooltip()
-    this.skyAnim = { from: this.skyTilt, to: on ? 1.1 : 0, start: performance.now(), duration }
-  }
-
   jumpTo(view: IsoView) {
     this.controls.target.set(view.x, 0, view.z)
     this.camera.position
@@ -2363,7 +2351,7 @@ export class IsoMap {
         this.flight = null
         done()
       }
-    } else if (this.controls.enabled && !this.skyOn) {
+    } else if (this.controls.enabled) {
       this.stepZoom()
       this.controls.update()
       const limit = Math.min(this.distanceForZoom(startCamera.zoom) * 0.72, (this.areaDistance ?? Infinity) * 1.3)
@@ -2379,18 +2367,6 @@ export class IsoMap {
         this.locked = true
         void this.flyTo(this.startView(), 650)
       }
-    }
-    // the info view: the camera tilts up from the Grätzl towards the sky
-    if (this.skyAnim) {
-      const t = Math.min(1, (now - this.skyAnim.start) / this.skyAnim.duration)
-      const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-      this.skyTilt = THREE.MathUtils.lerp(this.skyAnim.from, this.skyAnim.to, e)
-      if (t >= 1) this.skyAnim = null
-    }
-    if (this.skyTilt > 0 || this.skyAnim) {
-      this.camera.lookAt(this.controls.target)
-      this.camera.rotateX(this.skyTilt)
-      this.pinsDirty = true
     }
     const distance = this.camera.position.distanceTo(this.controls.target)
     const fog = this.scene.fog as THREE.Fog
