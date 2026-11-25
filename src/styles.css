@@ -591,6 +591,7 @@ button { color: inherit; }
 .iso-pins.is-revealed { opacity: 1; }
 .iso-pins:not(.is-revealed) * { pointer-events: none !important; }
 .iso-pin {
+  touch-action: none;
   position: absolute; left: 0; top: 0; width: 39px; height: 39px; margin: -19.5px 0 0 -19.5px; padding: 0; border: 0; background: none;
   cursor: pointer; pointer-events: auto; font: 700 10px/1 'Figtree', system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase;
 }
@@ -1099,9 +1100,9 @@ button { color: inherit; }
 .seg-sm.seg-green .seg-option[aria-checked="true"] { color: #0c8a40; }
 
 .tour-note { margin: 6px 0 0 !important; font-size: 12px; opacity: .75; }
-.tour-card.is-aktuell { background: #f3efe6; color: #3a362e; box-shadow: 0 10px 30px rgba(60, 50, 30, .2), 0 0 0 1px rgba(90, 84, 70, .16); }
-.tour-card.is-aktuell strong { color: #5a5446; }
-.tour-card.is-aktuell .tour-next { background: #5a5446; }
+.tour-card.is-aktuell { background: #e9f1f8; color: #1f3346; box-shadow: 0 10px 30px rgba(20, 50, 80, .2), 0 0 0 1px rgba(47, 111, 159, .18); }
+.tour-card.is-aktuell strong { color: #2f6f9f; }
+.tour-card.is-aktuell .tour-next { background: #2f6f9f; }
 
 /* ------------------------------------------------------------------------------------------------
    Garagen-Initiative: blue mood like a parking sign, symbols on the map
@@ -1177,3 +1178,10 @@ button { color: inherit; }
 .iso-area { transition: box-shadow .15s ease-out, scale .15s ease-out, opacity .5s ease; }
 .map-stage.is-start-hint .iso-area { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .start-hint { animation: none; } }
+
+/* touch: icons hand pans and pinches on to the map */
+.iso-cluster { touch-action: none; }
+/* phones: no zoom buttons, the fingers zoom */
+@media (max-width: 720px) {
+  .iso-controls .mapboxgl-ctrl-bottom-left { display: none; }
+}

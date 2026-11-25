@@ -29,6 +29,9 @@ import {
 } from './mapAudio'
 import type { CategoryId, FeatureSummary, GeoJsonFeatureCollection } from './types'
 
+/** Trees, Aktuell: close on the Lichtentaler Park and a little around it */
+const TREES_PARK_FOCUS = { x: 8, y: -5, width: 165, height: 175 }
+
 function App() {
   const mapElementRef = useRef<HTMLDivElement>(null)
   const isoRef = useRef<IsoMap | null>(null)
@@ -207,9 +210,10 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [isAreaView, appMode, holdHintDone])
 
-  // Grätzl-Ideen: the pedestrian zones of the new concept, once you are inside an area (not at the start view); see-through over the scans
+  // Grätzl-Ideen: the pedestrian zones of the new concept, once you are inside an area (not at the start view)
   useEffect(() => {
-    isoRef.current?.setBasePedestrianZones(appMode === 'ideas' && isAreaView, holding)
+    // while the scans show (hold), the zones step aside so the plans are readable
+    isoRef.current?.setBasePedestrianZones(appMode === 'ideas' && isAreaView && !holding)
   }, [appMode, isAreaView, holding])
 
   // the note shows for a few seconds once the map and its controls are there, then the area names appear
@@ -356,7 +360,9 @@ function App() {
     const cardOpen = appMode === 'traffic' ? tourStep !== null : appMode === 'trees' ? treeStep !== null : garageStep !== null
     const focus = appMode === 'traffic' && tourStep !== null && tourSteps[tourStep].focus === 'park' ? PARK_FOCUS
       : appMode === 'trees' && treeStep !== null && treeSteps[treeStep].cool ? iso.coolFocus()
-        : appMode === 'trees' && treeStep === 0 ? PARK_FOCUS
+        // trees: Aktuell close on the park, Neu a bit wider (the new trees, not the whole Grätzl)
+        : appMode === 'trees' && treeStep === 0 ? TREES_PARK_FOCUS
+        : appMode === 'trees' && treeStep === 1 ? PARK_FOCUS
         : appMode === 'garages' ? iso.garageFocus(garageStep === null ? 'all' : garageSteps[garageStep].stage) : undefined
     const beside = cardOpen && tourInsets?.sideWidth ? { width: tourInsets.sideWidth, gap: 28 } : undefined
     const insets = cardOpen ? { left: 8, right: 8, bottom: tourInsets?.bottom } : {}

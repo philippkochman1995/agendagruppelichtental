@@ -484,17 +484,15 @@ export const AREA_GROUPS = [
   { name: 'Fechtergasse & Thurygasse', parts: ['Marktgasse & Fechtergasse', 'Thurygasse'] },
 ]
 
-/** Calm, static lime band with white dashes: a pedestrian zone */
+/** Calm, static lime band: a pedestrian zone */
 function pedestrianTexture() {
   const canvas = document.createElement('canvas')
   canvas.width = 64
   canvas.height = 64
   const context = canvas.getContext('2d')!
+  // plain green, no edge dashes
   context.fillStyle = 'rgba(96, 164, 32, 0.82)'
   context.fillRect(0, 0, 64, 64)
-  context.fillStyle = 'rgba(255, 255, 255, 0.9)'
-  context.fillRect(8, 6, 30, 5)
-  context.fillRect(8, 53, 30, 5)
   const texture = new THREE.CanvasTexture(canvas)
   texture.wrapS = THREE.RepeatWrapping
   texture.colorSpace = THREE.SRGBColorSpace
@@ -540,6 +538,9 @@ export class IsoMap {
   private readonly pinLayer: HTMLDivElement
   private readonly infoTooltip: HTMLDivElement
   private hoveredFeature: IsoFeature | null = null
+  /** touches on the map right now (a tap on an icon during a pinch is no tap) */
+  private activeTouches = 0
+  private pinchSeen = false
   private readonly streetLayer: HTMLDivElement
   private readonly districtLayer: HTMLDivElement
   private readonly districtLabels: { element: HTMLSpanElement; position: THREE.Vector3 }[] = []
@@ -704,6 +705,9 @@ export class IsoMap {
     this.jumpTo(this.introView())
 
     this.renderer.domElement.addEventListener('pointerdown', this.handlePointerDown)
+    window.addEventListener('pointerdown', this.countTouch, true)
+    window.addEventListener('pointerup', this.countTouch, true)
+    window.addEventListener('pointercancel', this.countTouch, true)
     container.addEventListener('pointerdown', this.handleHoldDown)
     container.addEventListener('pointermove', this.handleHoldMove)
     container.addEventListener('pointerup', this.handleHoldEnd)
@@ -1155,8 +1159,8 @@ export class IsoMap {
     if (!on) return
     const crownGeometry = new THREE.IcosahedronGeometry(1, 1)
     const trunkGeometry = new THREE.CylinderGeometry(0.18, 0.26, 1, 5)
-    // new trees: same shape as the existing ones, but warm yellow to red so they stand out
-    const crownMaterials = ['#f4b73a', '#ee9440', '#e8704a', '#f0a63c'].map((color) => new THREE.MeshLambertMaterial({ color, flatShading: true }))
+    // new trees: same shape as the existing ones, but warm yellow to orange so they stand out
+    const crownMaterials = ['#f6c13e', '#f2a73a', '#f8cf52', '#ef9a36'].map((color) => new THREE.MeshLambertMaterial({ color, flatShading: true }))
     const trunkMaterial = new THREE.MeshLambertMaterial({ color: COLORS.trunk })
     const spots = this.treeSpots()
     spots.forEach((spot, index) => {
@@ -1174,9 +1178,28 @@ export class IsoMap {
       trunk.position.y = trunkHeight / 2
       trunk.castShadow = true
       tree.add(trunk, crown)
+      crown.userData.scale = crown.scale.clone()
       this.scene.add(tree)
       this.treeObjects.push(tree)
     })
+    // the new trees pulse a few times, so you see at once which ones are new
+    this.treePulse = performance.now()
+  }
+
+  private treePulse: number | null = null
+
+  /** One frame of the pulse of the new trees: three soft swells of the crowns, then they rest */
+  private stepTreePulse(now: number) {
+    if (this.treePulse === null) return
+    const t = (now - this.treePulse - 500) / 1000
+    const done = t >= 3
+    const swell = t <= 0 || done ? 0 : Math.pow(Math.sin(Math.PI * t), 2) * 0.22
+    this.treeObjects.forEach((tree) => {
+      const crown = tree.children[1] as THREE.Mesh | undefined
+      const base = crown?.userData.scale as THREE.Vector3 | undefined
+      if (crown && base) crown.scale.copy(base).multiplyScalar(1 + swell)
+    })
+    if (done) this.treePulse = null
   }
 
   /** Icons and scans are alternatives: with scans on, the pins are hidden */
@@ -1472,23 +1495,21 @@ export class IsoMap {
     const feature: IsoFeature = { layer, category, properties, bounds: new THREE.Box3(position.clone(), position.clone()).expandByScalar(15), zoneName: this.zoneAt(position)?.name }
     const detail = getDemoDetail({ layerId: layer.id, layerLabel: layer.label, categoryId: category.id, featureId: '', properties })
     element.setAttribute('aria-label', `${layer.label} (${category.label})${detail ? `: ${detail.title}` : ''}`)
-    // anchored to the icon: the tooltip stays put while hovering
-    element.addEventListener('pointerenter', () => {
-      const rect = element.getBoundingClientRect()
-      this.showInfoTooltip(feature, rect.left + rect.width / 2, rect.top)
-    })
-    element.addEventListener('pointerleave', () => this.hideInfoTooltip())
-    element.addEventListener('wheel', this.handlePinWheel, { passive: false })
-    element.addEventListener('focus', () => {
+    // anchored to the icon: the tooltip stays put while hovering (mouse); a tap shows it the same way (no panel)
+    const showInfo = () => {
       const rect = element.querySelector('.iso-pin-icon')!.getBoundingClientRect()
       this.showInfoTooltip(feature, rect.left + rect.width / 2, rect.top)
-    })
+    }
+    element.addEventListener('pointerenter', (event) => { if (event.pointerType === 'mouse') showInfo() })
+    element.addEventListener('pointerleave', (event) => { if (event.pointerType === 'mouse') this.hideInfoTooltip() })
+    element.addEventListener('wheel', this.handlePinWheel, { passive: false })
+    element.addEventListener('focus', showInfo)
     element.addEventListener('blur', () => this.hideInfoTooltip())
     element.addEventListener('click', (event) => {
       event.stopPropagation()
-      this.hideInfoTooltip()
-      this.callbacks.onFeatureClick(feature)
+      showInfo()
     })
+    this.passTouchToMap(element, showInfo)
     this.pinLayer.appendChild(element)
     this.pins.push({ element, position, categoryId: category.id, category, layerId: layer.id, x: 0, y: 0, on: false })
   }
@@ -1699,6 +1720,43 @@ export class IsoMap {
     }
   }
 
+  /**
+   * Touch: a finger that lands on an icon still moves and pinch-zooms the map (there are many icons, it happens easily).
+   * The touch is handed to the map; only a short tap without moving counts as a tap on the icon.
+   */
+  private countTouch = (event: PointerEvent) => {
+    if (event.pointerType === 'mouse' || !event.isTrusted) return
+    if (event.type === 'pointerdown') {
+      if (this.activeTouches > 0) this.pinchSeen = true
+      this.activeTouches++
+    } else this.activeTouches = Math.max(0, this.activeTouches - 1)
+  }
+
+  private passTouchToMap(element: HTMLElement, onTap: () => void) {
+    element.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse') return
+      event.preventDefault()
+      event.stopPropagation()
+      const start = { x: event.clientX, y: event.clientY, time: performance.now(), id: event.pointerId }
+      let moved = false
+      const move = (next: PointerEvent) => {
+        if (next.pointerId === start.id && Math.hypot(next.clientX - start.x, next.clientY - start.y) > 8) moved = true
+      }
+      const up = (next: PointerEvent) => {
+        if (next.pointerId !== start.id) return
+        window.removeEventListener('pointermove', move, true)
+        window.removeEventListener('pointerup', up, true)
+        window.removeEventListener('pointercancel', up, true)
+        if (next.type === 'pointerup' && !moved && performance.now() - start.time < 500 && !this.pinchSeen) onTap()
+      }
+      window.addEventListener('pointermove', move, true)
+      window.addEventListener('pointerup', up, true)
+      window.addEventListener('pointercancel', up, true)
+      if (this.activeTouches <= 1) this.pinchSeen = false
+      this.renderer.domElement.dispatchEvent(new PointerEvent('pointerdown', event))
+    })
+  }
+
   private clusterElement(key: string) {
     const existing = this.clusterPool.get(key)
     if (existing) return existing
@@ -1707,11 +1765,15 @@ export class IsoMap {
     element.className = 'iso-cluster'
     element.innerHTML = '<img alt="" /><b></b>'
     element.addEventListener('wheel', this.handlePinWheel, { passive: false })
-    element.addEventListener('click', (event) => {
-      event.stopPropagation()
+    const zoomIn = () => {
       const view = this.currentView()
       void this.flyTo({ ...view, x: Number(element.dataset.x), z: Number(element.dataset.z), distance: Math.max(this.controls.minDistance, view.distance * 0.45) }, 700)
+    }
+    element.addEventListener('click', (event) => {
+      event.stopPropagation()
+      zoomIn()
     })
+    this.passTouchToMap(element, zoomIn)
     this.pinLayer.appendChild(element)
     this.clusterPool.set(key, element)
     return element
@@ -1985,7 +2047,9 @@ export class IsoMap {
     }
     const hit = this.pick(event)
     this.hideInfoTooltip()
-    if (hit) this.callbacks.onFeatureClick({ ...hit.feature, zoneName: this.zoneAt(hit.feature.bounds.getCenter(new THREE.Vector3()))?.name })
+    // the park zooms in; everything else just shows its text at the spot (like on hover), no panel
+    if (hit && hit.feature.layer.id === 'stay') this.callbacks.onFeatureClick({ ...hit.feature, zoneName: this.zoneAt(hit.feature.bounds.getCenter(new THREE.Vector3()))?.name })
+    else if (hit) this.showInfoTooltip(hit.feature, event.clientX, event.clientY)
     else this.callbacks.onBackgroundClick()
   }
 
@@ -2331,6 +2395,7 @@ export class IsoMap {
     this.renderer.render(this.scene, this.camera)
     this.placePins()
     this.garageScene?.update(this.camera, this.container.clientWidth, this.container.clientHeight)
+    this.stepTreePulse(performance.now())
     this.callbacks.onZoom?.(startCamera.zoom + Math.log2(this.distanceForZoom(startCamera.zoom) / this.camera.position.distanceTo(this.controls.target)))
 
   }
@@ -2367,6 +2432,9 @@ export class IsoMap {
     this.renderer.domElement.removeEventListener('pointermove', this.handleHover)
     this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerLeave)
     this.renderer.domElement.removeEventListener('wheel', this.handleWheel, { capture: true })
+    window.removeEventListener('pointerdown', this.countTouch, true)
+    window.removeEventListener('pointerup', this.countTouch, true)
+    window.removeEventListener('pointercancel', this.countTouch, true)
     this.renderer.domElement.removeEventListener('dblclick', this.handleDoubleClick)
     this.renderer.dispose()
     this.container.replaceChildren()

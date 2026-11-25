@@ -57,7 +57,7 @@ export const treeSteps: TreeStep[] = [
   {
     view: 'neu',
     title: 'Neu: 100 neue Bäume',
-    text: 'Die meisten davon haben Nachbar:innen in den Workshops eingefordert, sie stehen dort, wo Begrünung oder Schatten gewünscht wurde (gelb bis rot). Wir fordern 100 neue Bäume fürs Lichtental.',
+    text: 'Die meisten davon haben Nachbar:innen in den Workshops eingefordert, sie stehen dort, wo Begrünung oder Schatten gewünscht wurde (gelb bis orange). Wir fordern 100 neue Bäume fürs Lichtental.',
     cool: false,
   },
   {

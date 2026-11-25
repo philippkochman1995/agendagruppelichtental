@@ -177,7 +177,7 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
       )}
       {mode === 'trees' && (
         <div className="map-top">
-          <SegmentedControl options={treesViewOptions} value={treesView} onChange={onTreesView} label="Bäume: aktuell oder neu" size="sm" tone={treesView === 'neu' ? 'green' : undefined} />
+          <SegmentedControl options={treesViewOptions} value={treesView} onChange={onTreesView} label="Bäume: aktuell oder neu" size="sm" tone={treesView === 'neu' ? 'green' : 'blue'} />
           <button type="button" className={`tour-info ${treeStep !== null ? 'is-on' : ''}`} aria-pressed={treeStep !== null} aria-label="Bäume erklären" onClick={() => (treeStep === null ? onTreeStep(firstTreeStepOf(treesView)) : onTreeClose())}>?</button>
         </div>
       )}
