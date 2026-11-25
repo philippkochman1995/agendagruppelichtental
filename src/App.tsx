@@ -740,10 +740,6 @@ function App() {
 
         {aboutOpen && <AboutPanel onClose={() => setAboutOpen(false)} />}
 
-        {!introOpen && appMode === 'ideas' && !isAreaView && !isZoneFocused && (
-          <a className="made-by" href="https://studiovis.at" target="_blank" rel="noopener">Design &amp; Dev: studiovis</a>
-        )}
-
         {legendOpen && (
           <aside ref={legendPanelRef} className="legend-panel" id="legend-panel" aria-label="Kartenfilter">
             <div className="panel-heading">
