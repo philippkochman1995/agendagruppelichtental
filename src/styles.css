@@ -1301,7 +1301,7 @@ button { color: inherit; }
 
 
 /* credits at the end of the info: data source (required by the licence) and design */
-.about-credits { margin-top: 48px !important; margin-bottom: 0 !important; font-size: 12.5px; line-height: 1.6; color: #6b6a5f; }
+.about-credits { margin-top: 28px !important; margin-bottom: 0 !important; font-size: 12.5px; line-height: 1.6; color: #6b6a5f; }
 .about-credits a { color: inherit; text-underline-offset: 2px; }
 
 /* credit: small and quiet, bottom left, only at the start view of the Grätzl ideas and only on wide screens (on phones it is in the info) */
@@ -1314,8 +1314,8 @@ button { color: inherit; }
 @media (max-width: 720px) { .made-by { display: none; } }
 
 /* invitation to join, at the end of the info */
-.about-contact { display: flex; flex-direction: column; gap: 3px; margin-top: 40px; }
-.about-contact strong { font: 700 16px/1.3 'Figtree', system-ui, sans-serif; color: #003c2b; }
+.about-contact { display: flex; flex-direction: column; gap: 3px; margin-top: 28px; }
+.about-contact strong { font: 700 18px/1.3 'Figtree', system-ui, sans-serif; color: #003c2b; }
 .about-contact a { font-weight: 700; color: #17603f; text-underline-offset: 3px; word-break: break-word; }
 .about-contact a { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; }
 .about-contact a svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

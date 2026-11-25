@@ -72,8 +72,6 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           <p className="about-credits">
             <a href={`${base}impressum.html`}>Impressum</a> | <a href={`${base}datenschutz.html`}>Datenschutz</a>
             <br />
-            Kartendaten: Stadt Wien – <a href="https://data.wien.gv.at" target="_blank" rel="noopener">data.wien.gv.at</a> (<a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>)
-            <br />
             Design &amp; Dev: <a href="https://studiovis.at" target="_blank" rel="noopener">studiovis</a>
           </p>
         </div>
