@@ -31,7 +31,7 @@ export function PosterUnicorn() {
   // (coordinates in the pixel space of intro-unicorn-danube.png, 1402 × 1122).
   return (
     <div className="poster-unicorn-stage" aria-hidden="true">
-      <img className="poster-unicorn" src="/intro-unicorn-danube.png" alt="" draggable={false} />
+      <img className="poster-unicorn" src="intro-unicorn-danube.png" alt="" draggable={false} />
       <svg className="poster-unicorn-eye" viewBox="0 0 1402 1122" aria-hidden="true">
         <ellipse cx="987" cy="742" rx="96" ry="52" fill="#f7f2eb" />
         <g className="poster-unicorn-eye-open">

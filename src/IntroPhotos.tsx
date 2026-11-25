@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 // Workshop photos for the start screen. Add more pictures to public/workshop/ and list them here;
 // with more than one photo the frame turns into a slideshow.
 const PHOTOS = [
-  { src: '/intro-workshop.png', alt: 'Workshop im Innenhof: Nachbar:innen sitzen an Tischen im Grünen und planen gemeinsam' },
+  { src: 'intro-workshop.png', alt: 'Workshop im Innenhof: Nachbar:innen sitzen an Tischen im Grünen und planen gemeinsam' },
 ]
 
 export function IntroPhotos() {

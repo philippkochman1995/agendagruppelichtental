@@ -746,7 +746,7 @@ export class IsoMap {
           this.scene.add(mesh)
           this.planOverlayMeshes.push(mesh)
         }
-        image.src = `/plans/${tile.file}`
+        image.src = `plans/${tile.file}`
       })
     })
   }
@@ -2077,8 +2077,8 @@ export class IsoMap {
   // --- city --------------------------------------------------------------------------------------
   private async buildCity() {
     const [data, city] = await Promise.all([
-      fetch('/iso/graetzl.json').then((response) => response.json() as Promise<IsoData>),
-      fetch('/iso/vienna.json').then((response) => response.json() as Promise<ViennaData>).catch(() => null),
+      fetch('iso/graetzl.json').then((response) => response.json() as Promise<IsoData>),
+      fetch('iso/vienna.json').then((response) => response.json() as Promise<ViennaData>).catch(() => null),
     ])
     if (this.disposed) return
 
