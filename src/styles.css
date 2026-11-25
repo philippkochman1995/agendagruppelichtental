@@ -1309,6 +1309,11 @@ button { color: inherit; }
 /* credits at the end of the info: data source (required by the licence) and design */
 .about-credits { margin-top: 28px !important; margin-bottom: 0 !important; font-size: 12.5px; line-height: 1.6; color: #6b6a5f; }
 .about-credits a { color: inherit; text-underline-offset: 2px; }
+/* the footer of the info sits on a light grey band across the whole width, down to the bottom edge */
+.about-credits { margin: 48px -28px -20px !important; padding: 9px 28px 10px; background: #f6f2e9; }
+@media (max-width: 720px) {
+  .about-credits { margin: 48px -20px calc(-16px - env(safe-area-inset-bottom)) !important; padding: 9px 20px calc(10px + env(safe-area-inset-bottom)); }
+}
 
 /* credit: small and quiet, bottom left, only at the start view of the Grätzl ideas and only on wide screens (on phones it is in the info) */
 .made-by {
