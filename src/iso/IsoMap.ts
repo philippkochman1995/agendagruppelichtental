@@ -1048,19 +1048,11 @@ export class IsoMap {
     this.hideInfoTooltip()
   }
 
-  /** New trees that stand at the Reznicekgasse (within 20 m of it) */
-  private rezniceTrees() {
-    return this.treeSpots().filter((spot) => projectOnRoute(REZNICEK_ROUTE, spot.x, -spot.z).dist < 20)
-  }
-
   /** Close-up rectangle around the new trees at the Reznicekgasse (local metres), for the camera */
   coolFocus() {
-    const trees = this.rezniceTrees()
-    if (!trees.length) return { x: -55, y: 140, width: 160, height: 100 }
-    const xs = trees.map((spot) => spot.x), ys = trees.map((spot) => -spot.z)
-    const margin = 44
-    const minX = Math.min(...xs) - margin, maxX = Math.max(...xs) + margin, minY = Math.min(...ys) - margin, maxY = Math.max(...ys) + margin
-    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2, width: Math.max(130, maxX - minX), height: Math.max(90, maxY - minY) }
+    // close on the middle of the Reznicekgasse (Marktgasse to Wiesengasse): with all 134 spots the trees line the whole street,
+    // framing them all would be too far away
+    return { x: -42, y: 140, width: 140, height: 90 }
   }
 
   /**

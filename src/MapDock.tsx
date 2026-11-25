@@ -146,7 +146,7 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
   if (mode === 'garages' && garageStep !== null) {
     const step = garageSteps[garageStep]
     card = {
-      key: `g${garageStep}`, title: step.title, text: step.text, tone: 'is-garage', index: garageStep + 1, count: garageSteps.length,
+      key: `g${garageStep}`, title: step.title, text: step.text, tone: `is-garage${step.stage === 'sharing' ? ' is-sharing' : step.stage === 'loading' ? ' is-loading' : ''}`, index: garageStep + 1, count: garageSteps.length,
       last: garageStep + 1 >= garageSteps.length, next: () => (garageStep + 1 < garageSteps.length ? onGarageStep(garageStep + 1) : onGarageClose()),
     }
   }
@@ -177,13 +177,13 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
       )}
       {mode === 'trees' && (
         <div className="map-top">
-          <SegmentedControl options={treesViewOptions} value={treesView} onChange={onTreesView} label="Bäume: aktuell oder neu" size="sm" tone={treesView === 'neu' ? 'green' : 'blue'} />
+          <SegmentedControl options={treesViewOptions} value={treesView} onChange={onTreesView} label="Bäume: aktuell oder neu" size="sm" tone={treesView === 'neu' ? 'green' : 'red'} />
           <button type="button" className={`tour-info ${treeStep !== null ? 'is-on' : ''}`} aria-pressed={treeStep !== null} aria-label="Bäume erklären" onClick={() => (treeStep === null ? onTreeStep(firstTreeStepOf(treesView)) : onTreeClose())}>?</button>
         </div>
       )}
       {mode === 'garages' && (
         <div className="map-top">
-          <SegmentedControl options={trafficOptions} value={garageStep !== null ? 'neu' : garageView} onChange={onGarageView} label="Garagen: aktuell oder Supergrätzl" size="sm" tone={garageStep !== null || garageView === 'neu' ? 'blue' : undefined} />
+          <SegmentedControl options={trafficOptions} value={garageStep !== null ? 'neu' : garageView} onChange={onGarageView} label="Garagen: aktuell oder Supergrätzl" size="sm" tone={garageStep !== null || garageView === 'neu' ? 'blue' : 'red'} />
           <button type="button" className={`tour-info ${garageStep !== null ? 'is-on' : ''}`} aria-pressed={garageStep !== null} aria-label="Garagen-Initiative erklären" onClick={() => (garageStep === null ? onGarageStep(0) : onGarageClose())}>?</button>
         </div>
       )}

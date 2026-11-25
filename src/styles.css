@@ -707,7 +707,7 @@ button { color: inherit; }
   background: var(--paper, #fffdf8); transform: rotate(45deg); border-radius: 2px;
 }
 /* hover: a small move towards its area (no growing), plus the yellow frame, which runs round the arrow too */
-.iso-area:hover, .iso-area.is-hover { margin-top: -10px; background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
+.iso-area:hover, .iso-area.is-hover { margin-top: -10.5px; background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
 .iso-area.side-left:hover, .iso-area.side-left.is-hover { margin: 0 0 0 5px; }
 .iso-area.side-right:hover, .iso-area.side-right.is-hover { margin: 0 0 0 -5px; }
 .iso-area:hover::after, .iso-area.is-hover::after { background: #fff4d6; box-shadow: 2px 2px 0 0 #ffc24a; }
@@ -1118,6 +1118,13 @@ button { color: inherit; }
 .tour-card.is-garage { background: #e8f0fb; color: #142c4d; box-shadow: 0 10px 30px rgba(14, 40, 80, .22), 0 0 0 1px rgba(29, 95, 191, .18); }
 .tour-card.is-garage strong { color: #1d5fbf; }
 .tour-card.is-garage .tour-next { background: #1d5fbf; }
+/* each garage step in the colour of its symbols: car sharing teal, loading zones yellow */
+.tour-card.is-garage.is-sharing { background: #e3f5f2; color: #10332f; box-shadow: 0 10px 30px rgba(10, 70, 64, .22), 0 0 0 1px rgba(20, 168, 154, .22); }
+.tour-card.is-garage.is-sharing strong { color: #0e7f74; }
+.tour-card.is-garage.is-sharing .tour-next { background: #14a89a; }
+.tour-card.is-garage.is-loading { background: #fdf4d6; color: #3a2c00; box-shadow: 0 10px 30px rgba(90, 70, 0, .2), 0 0 0 1px rgba(242, 183, 5, .3); }
+.tour-card.is-garage.is-loading strong { color: #8a6400; }
+.tour-card.is-garage.is-loading .tour-next { background: #d99f00; }
 
 .map-marks { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 .map-mark { position: absolute; left: 0; top: 0; will-change: transform; }
