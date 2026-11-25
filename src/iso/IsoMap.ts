@@ -1154,8 +1154,6 @@ export class IsoMap {
       this.scene.add(tree)
       this.treeObjects.push(tree)
     })
-    // the new trees pulse a few times, so you see at once which ones are new
-    this.treePulse = performance.now()
   }
 
   private treePulse: number | null = null
