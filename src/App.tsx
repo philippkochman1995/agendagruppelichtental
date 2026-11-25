@@ -142,6 +142,15 @@ function App() {
     })
   }, [audioEnabled, startAmbient])
 
+  /** zoom into an area: a rising sweep; back to the start view: a click and a falling sweep */
+  const playAreaZoom = useCallback((direction: 'in' | 'out') => {
+    if (!audioEnabled) return
+    void startAmbient(direction === 'in' ? 'park' : 'overview').then((runtime) => {
+      if (direction === 'out') playModalClickSound(runtime)
+      playZoomSound(runtime, direction, direction === 'out' ? 0.07 : 0)
+    })
+  }, [audioEnabled, startAmbient])
+
   const playModalClick = useCallback(() => {
     if (!audioEnabled) return
     void startAmbient(parkFocusedRef.current ? 'park' : 'overview').then(playModalClickSound)
@@ -184,13 +193,22 @@ function App() {
   }, [uiVisible, introOpen, startAmbient])
 
   // traffic tour: loud for Bestand, calmer for Neu, birds once the pedestrian zones come; trees and garages keep the city sound
+  // trees: Supergrätzl sounds like a park (birds, leaves); garages: Supergrätzl calmer than today;
+  // Grätzl-Ideen: the city at the start view, the park sound once you are inside an area
   useEffect(() => {
-    if (appMode === 'ideas') return
-    if (appMode === 'traffic') {
+    if (!uiVisible || introOpen) return
+    if (appMode === 'ideas') {
+      setAudioScene(isAreaView || isZoneFocused ? 'park' : 'overview')
+    } else if (appMode === 'traffic') {
       const step = tourStep !== null ? tourSteps[tourStep] : null
       setAudioScene(traffic === 'bestand' ? 'traffic-busy' : step?.pedestrians ? 'traffic-quiet' : 'traffic-calm')
-    } else setAudioScene('overview')
-  }, [appMode, traffic, tourStep, setAudioScene])
+    } else if (appMode === 'trees') {
+      setAudioScene(treesView === 'neu' ? 'park' : 'overview')
+    } else {
+      const today = garageStep !== null ? garageSteps[garageStep].stage === 'start' : garageView === 'bestand'
+      setAudioScene(today ? 'overview' : 'traffic-calm')
+    }
+  }, [appMode, traffic, tourStep, treesView, garageStep, garageView, isAreaView, isZoneFocused, uiVisible, introOpen, setAudioScene])
 
   const toggleAudio = useCallback(() => {
     if (audioEnabled) {
@@ -453,6 +471,7 @@ function App() {
       })
     },
     zone: (name) => {
+      playAreaZoom('in')
       if (detailCloseTimerRef.current !== null) {
         window.clearTimeout(detailCloseTimerRef.current)
         detailCloseTimerRef.current = null
@@ -708,7 +727,7 @@ function App() {
           <span className="cloud cloud-three" />
         </div>
 
-        <button className="overview-back" type="button" aria-label="Zurück zur Startansicht" onClick={() => (appMode !== 'ideas' && isoRef.current ? void isoRef.current.flyTo(isoRef.current.trafficView(), 1050) : returnToOverview())} inert={introOpen || (!isAreaView && !isZoneFocused) || appMode !== 'ideas'} style={appMode !== 'ideas' ? { display: 'none' } : undefined}>
+        <button className="overview-back" type="button" aria-label="Zurück zur Startansicht" onClick={() => { if (appMode === 'ideas') playAreaZoom('out'); if (appMode !== 'ideas' && isoRef.current) void isoRef.current.flyTo(isoRef.current.trafficView(), 1050); else returnToOverview() }} inert={introOpen || (!isAreaView && !isZoneFocused) || appMode !== 'ideas'} style={appMode !== 'ideas' ? { display: 'none' } : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12" /></svg>
           <span>Zurück</span>
         </button>

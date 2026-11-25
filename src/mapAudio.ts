@@ -135,9 +135,11 @@ export function createParkAmbient(runtime: AudioRuntime): AmbientHandle {
   }
 }
 
-export function playZoomSound(runtime: AudioRuntime) {
+/** A soft sweep: up when you zoom in, down when you zoom out (delay in seconds, e.g. after a click) */
+export function playZoomSound(runtime: AudioRuntime, direction: 'in' | 'out' = 'in', delay = 0) {
   const { context, master } = runtime
-  const start = context.currentTime
+  const start = context.currentTime + delay
+  const [low, high] = direction === 'in' ? [180, 820] : [760, 170]
   const gain = context.createGain()
   gain.gain.setValueAtTime(0.0001, start)
   gain.gain.exponentialRampToValueAtTime(0.19, start + 0.06)
@@ -146,19 +148,19 @@ export function playZoomSound(runtime: AudioRuntime) {
 
   const sweep = context.createOscillator()
   sweep.type = 'triangle'
-  sweep.frequency.setValueAtTime(180, start)
-  sweep.frequency.exponentialRampToValueAtTime(820, start + 0.48)
+  sweep.frequency.setValueAtTime(low, start)
+  sweep.frequency.exponentialRampToValueAtTime(high, start + 0.48)
   const filter = context.createBiquadFilter()
   filter.type = 'lowpass'
-  filter.frequency.setValueAtTime(500, start)
-  filter.frequency.exponentialRampToValueAtTime(1900, start + 0.5)
+  filter.frequency.setValueAtTime(direction === 'in' ? 500 : 1900, start)
+  filter.frequency.exponentialRampToValueAtTime(direction === 'in' ? 1900 : 450, start + 0.5)
   sweep.connect(filter).connect(gain)
   sweep.start(start)
   sweep.stop(start + 0.64)
 
   window.setTimeout(() => {
     try { sweep.disconnect(); filter.disconnect(); gain.disconnect() } catch { /* already disconnected */ }
-  }, 850)
+  }, 850 + delay * 1000)
 }
 
 export function playModalClickSound(runtime: AudioRuntime) {

@@ -4,8 +4,8 @@ import * as THREE from 'three'
 import { MapControls } from 'three/examples/jsm/controls/MapControls.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { introCamera, startCamera } from '../mapConfig'
-import { markerUrl } from '../cleanMarkers'
-import { getDemoDetail } from '../demoDetails'
+import { markerUrl, QUOTE_COLOR, quoteMarkerUrl, UNICORN_BLUE, unicornMarkerUrl } from '../cleanMarkers'
+import { getDemoDetail, kindText } from '../demoDetails'
 import { streetPlans, type StreetPlan } from '../streetPlans'
 import { planTiles } from '../planTiles'
 import { trafficConcepts, type TrafficMode, type TrafficFlow } from '../traffic'
@@ -1517,11 +1517,16 @@ export class IsoMap {
 
   // --- pins --------------------------------------------------------------------------------------
   private addPin(layer: MapLayer, category: MapCategory, properties: Record<string, unknown>, position: THREE.Vector3) {
+    // the one special place without a text of its own is the blue unicorn of the Lichtental: a blue unicorn icon and its own line
+    const unicorn = layer.id === 'unicorn' && !kindText(properties)
+    if (unicorn) properties = { ...properties, Art: 'Das ikonische blaue Einhorn im Lichtental' }
     const element = document.createElement('button')
     element.type = 'button'
     element.className = 'iso-pin'
-    element.style.setProperty('--c', category.color)
-    element.innerHTML = `<img class="iso-pin-icon" src="${markerUrl(category)}" alt="" />`
+    // the quotes of the neighbours get a speech bubble in their own colour instead of the culture star
+    const quote = layer.id === 'quote'
+    element.style.setProperty('--c', unicorn ? UNICORN_BLUE : quote ? QUOTE_COLOR : category.color)
+    element.innerHTML = `<img class="iso-pin-icon" src="${unicorn ? unicornMarkerUrl() : quote ? quoteMarkerUrl() : markerUrl(category)}" alt="" />`
     const feature: IsoFeature = { layer, category, properties, bounds: new THREE.Box3(position.clone(), position.clone()).expandByScalar(15), zoneName: this.zoneAt(position)?.name }
     const detail = getDemoDetail({ layerId: layer.id, layerLabel: layer.label, categoryId: category.id, featureId: '', properties })
     element.setAttribute('aria-label', `${layer.label} (${category.label})${detail ? `: ${detail.title}` : ''}`)
