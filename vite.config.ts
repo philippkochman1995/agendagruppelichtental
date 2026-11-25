@@ -5,4 +5,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.BASE_PATH ?? '/',
   plugins: [react()],
+  // the map plus two plain pages (Impressum, Datenschutz)
+  build: { rollupOptions: { input: { main: 'index.html', impressum: 'impressum.html', datenschutz: 'datenschutz.html' } } },
 })

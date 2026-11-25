@@ -62,14 +62,16 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           <p>Das Lichtental, unser Grätzl im 9. Bezirk, liegt zwischen Liechtensteinstraße, Althanstraße und Alserbachstraße. Es ist ein besonderes Grätzl, mit viel Schubert, einem Einhorn und der höchsten Dichte an Gemeindebauten im Bezirk. Im Zentrum liegt der Lichtentaler Park, die VHS Marktgasse, das Jugendzentrum, mehrere Kindergärten und die Schubertkirche.</p>
           <p>Wir wohnen im Grätzl und haben uns in den letzten Jahren viele Gedanken gemacht, wie wir das Leben im Lichtental verbessern könnten. Fasziniert hat uns die Idee des Supergrätzls - die Wiener Version eines stadtplanerischen Konzepts, wie man es schon in anderen Städten findet. In einem Supergrätzl ist die aktive Nutzung des öffentlichen Raums die Priorität. Autos sollen nicht mehr das Grätzl durchqueren und Stellplätze werden weitgehend entfernt. Mit Hilfe des Forschungsprojekts TuneOurBlock haben wir ein Verkehrskonzept für das Supergrätzl Lichtental entwickelt. Wir haben auch herausgefunden, dass 134 neue Bäume im Lichtental gepflanzt werden können (mehr dazu in den Forderungen und der Bibliothek).</p>
           <p>Wie soll das Supergrätzl Lichtental konkret aussehen? Im Herbst 2023 haben wir unsere Nachbar:innen eingeladen, gemeinsam mit uns dieses Supergrätzl zu planen. In je einem Workshop pro Gasse haben insgesamt 250 Personen mit ihren Ideen, Wünschen und Erfahrungen mitgemacht. Die Ergebnisse sind auf dieser Karte zu sehen. In dieser digitalen Karte haben wir die vielfältigen Ideen in Kategorien gebündelt. Die meterlangen Originalpläne auf Papier kannst du auch hier ansehen.</p>
-          <Slideshow />
           <p>Diese Website dokumentiert unsere Arbeit für ein Grätzl, das den Herausforderungen der Zukunft gewachsen ist.</p>
+          <Slideshow />
           <div className="about-contact">
             <strong>Du möchtest bei unserem Projekt mitmachen?</strong>
             <span>Du erreichst uns unter:</span>
-            <a href="mailto:supergraetzl.lichtental@gmail.com">supergraetzl.lichtental@gmail.com</a>
+            <a href="mailto:supergraetzl.lichtental@gmail.com"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="m3.8 7 8.2 6 8.2-6" /></svg>supergraetzl.lichtental@gmail.com</a>
           </div>
           <p className="about-credits">
+            <a href={`${base}impressum.html`}>Impressum</a> | <a href={`${base}datenschutz.html`}>Datenschutz</a>
+            <br />
             Kartendaten: Stadt Wien – <a href="https://data.wien.gv.at" target="_blank" rel="noopener">data.wien.gv.at</a> (<a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>)
             <br />
             Design &amp; Dev: <a href="https://studiovis.at" target="_blank" rel="noopener">studiovis</a>

@@ -33,6 +33,10 @@ import type { CategoryId, FeatureSummary, GeoJsonFeatureCollection } from './typ
 /** Trees, Aktuell: close on the Lichtentaler Park and a little around it */
 const TREES_PARK_FOCUS = { x: 8, y: -5, width: 165, height: 175 }
 
+/** coming back from the Impressum or the Datenschutz page (./#info): straight to the map with the info open again */
+const RETURNING_TO_INFO = typeof location !== 'undefined' && location.hash === '#info'
+if (RETURNING_TO_INFO) history.replaceState(null, '', location.pathname + location.search)
+
 function App() {
   const mapElementRef = useRef<HTMLDivElement>(null)
   const isoRef = useRef<IsoMap | null>(null)
@@ -56,7 +60,7 @@ function App() {
   const [visible, setVisible] = useState<Set<CategoryId>>(() => new Set(initialVisibleCategoryIds))
   const [legendOpen, setLegendOpen] = useState(false)
   /** the info about the project, from the button at the top right of the start view */
-  const [aboutOpen, setAboutOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(RETURNING_TO_INFO)
   const [selected, setSelected] = useState<FeatureSummary | null>(null)
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [holding, setHolding] = useState(false)
@@ -85,7 +89,7 @@ function App() {
   const [loaded, setLoaded] = useState<Set<CategoryId>>(new Set())
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [audioMode, setAudioMode] = useState<AudioMode>('overview')
-  const [introOpen, setIntroOpen] = useState(true)
+  const [introOpen, setIntroOpen] = useState(!RETURNING_TO_INFO)
   const [introLeaving, setIntroLeaving] = useState(false)
   const visibleRef = useRef(visible)
   visibleRef.current = visible
