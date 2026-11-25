@@ -55,4 +55,3 @@ export interface GeoJsonFeatureCollection {
 
 export type Geometry = { type: string; coordinates?: unknown }
 export type FeatureCollection = GeoJsonFeatureCollection
-export type RenderedFeature = { id?: string | number; properties?: Record<string, unknown>; geometry: Geometry }

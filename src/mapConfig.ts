@@ -1,10 +1,4 @@
-import type mapboxgl from 'mapbox-gl'
-
-export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
-export const STYLE_URL = 'mapbox://styles/mapbox/standard'
-
-// Map engine: 'iso' renders the Grätzl in 3D with three.js from Stadt Wien open data (src/iso), 'mapbox' uses Mapbox GL
-export const MAP_ENGINE = 'iso' as 'mapbox' | 'iso'
+// The map is drawn in 3D with three.js from Stadt Wien open data (src/iso); camera values are in lng/lat and web-map zoom levels.
 
 // Map look: 'warm' (perspective 3D, warm daylight colours) or 'iso' (isometric: orthographic camera, pale lavender city)
 export const MAP_LOOK = 'warm' as 'warm' | 'iso'
@@ -30,12 +24,6 @@ export const introCamera = {
   pitch: 64,
   bearing: -16,
 }
-export const neighbourhoodMinZoom = 15.5
-
-export const neighbourhoodBounds: mapboxgl.LngLatBoundsLike = [
-  [16.3445, 48.2178],
-  [16.3725, 48.234],
-]
 
 // Straßenachsen: Stadt Wien, STRASSENGRAPHOGD (GIP), CC BY 4.0.
 // https://data.wien.gv.at/daten/geo (Stand des Abrufs: 2026-11-18)
@@ -96,8 +84,3 @@ export const focusAreaRing = [
   [16.35702227, 48.2253696],
   [16.35701536, 48.22491368],
 ]
-
-export const focusAreaGeometry = {
-  type: 'Polygon',
-  coordinates: [focusAreaRing],
-} as const

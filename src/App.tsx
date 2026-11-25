@@ -9,21 +9,15 @@ const INTRO_THEME = 'poster' as 'poster' | 'green' | 'cloudy' | 'classic' | 'ill
 import { createIntroCloudReveal } from './introCloudReveal'
 import { glyphDataUrl } from './cleanMarkers'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import mapboxgl, { type MapLayerMouseEvent } from 'mapbox-gl'
 import type { TrafficMode } from './traffic'
 import { MapDock, readTourDone, writeTourDone, type AppMode, type GarageView, type TourInsets, type TreesView } from './MapDock'
 import { PARK_FOCUS, firstStepOf, firstTreeStepOf, garageSteps, tourSteps, treeSteps } from './trafficTour'
 import { categories, initialVisibleCategoryIds, mapLayers } from './layers'
 import { featureHasDetail, getDemoDetail } from './demoDetails'
-import { MAP_ENGINE, MAP_LOOK, MAPBOX_TOKEN, STYLE_URL, introCamera, neighbourhoodBounds, neighbourhoodMinZoom, startCamera } from './mapConfig'
+import { MAP_LOOK } from './mapConfig'
 import { featureId, queryUrl } from './arcgis'
-import { geometryBounds, isInsideFocusArea } from './mapGeometry'
-import { applyWarm3DStyle } from './mapStyle'
-import { addGraetzlLayer, graetzlLayerIds } from './mapLayerRenderer'
-import { addFocusMask, bringFocusMaskToFront } from './mapFocusMask'
 import { gsap } from 'gsap'
 import { IsoMap, type IsoFeature } from './iso/IsoMap'
-import { viennaCamera, zoomIntoGraetzl } from './mapboxFlight'
 import {
   createOverviewAmbient,
   createParkAmbient,
@@ -33,27 +27,19 @@ import {
   type AudioMode,
   type AudioRuntime,
 } from './mapAudio'
-import type { CategoryId, FeatureSummary, GeoJsonFeatureCollection, MapCategory, MapLayer, RenderedFeature } from './types'
+import type { CategoryId, FeatureSummary, GeoJsonFeatureCollection } from './types'
 
 function App() {
   const mapElementRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
   const isoRef = useRef<IsoMap | null>(null)
   const isoHandlersRef = useRef<{ click(feature: IsoFeature): void; zone(name: string): void; background(): void }>({ click: () => {}, zone: () => {}, background: () => {} })
-  const popupRef = useRef<mapboxgl.Popup | null>(null)
-  const mapReadyRef = useRef(false)
   const parkFocusedRef = useRef(false)
   const zoneFocusedRef = useRef(false)
-  const parkFocusZoomRef = useRef<number | null>(null)
-  const renderedLayersRef = useRef(new Set<string>())
-  const loadingRef = useRef(new Map<CategoryId, Promise<void>>())
-  const generationRef = useRef(0)
   const audioRuntimeRef = useRef<AudioRuntime | null>(null)
   const detailCloseTimerRef = useRef<number | null>(null)
   const legendTriggerRef = useRef<HTMLButtonElement>(null)
   const legendPanelRef = useRef<HTMLElement>(null)
   const detailPanelRef = useRef<HTMLElement>(null)
-  const markersRevealedRef = useRef(false)
   const skyRef = useRef<HTMLDivElement>(null)
   const introDrawRef = useRef<((progress: number) => void) | null>(null)
   const introCloudRef = useRef<HTMLCanvasElement>(null)
@@ -304,17 +290,14 @@ function App() {
     setTraffic(mode)
   }, [goTour, tourStep, traffic])
 
-  const returnToOverview = useCallback((map: mapboxgl.Map | null) => {
+  const returnToOverview = useCallback(() => {
     parkFocusedRef.current = false
     zoneFocusedRef.current = false
     setIsZoneFocused(false)
-    parkFocusZoomRef.current = null
-    popupRef.current?.remove()
     closeDetail()
     setAudioScene('overview')
     const iso = isoRef.current
     if (iso) void iso.flyTo(iso.startView(), 1050)
-    else map?.easeTo({ ...startCamera, duration: 1050 })
   }, [closeDetail, setAudioScene])
 
   /** Grätzl ideas (icons / scans), the traffic concept, the new trees or the garages; all but the ideas start from above */
@@ -335,7 +318,7 @@ function App() {
       iso.setFreeView(false)
       iso.setPlansVisible(false)
       iso.setPinsHidden(false)
-      returnToOverview(null)
+      returnToOverview()
       return
     }
     closeDetail()
@@ -396,7 +379,7 @@ function App() {
       if (!iso) return
       if (feature.layer.id === 'stay') {
         if (parkFocusedRef.current) {
-          returnToOverview(null)
+          returnToOverview()
           return
         }
         closeDetail()
@@ -429,161 +412,13 @@ function App() {
       setSelectedZone(null)
     },
     background: () => {
-      if (zoneFocusedRef.current) returnToOverview(null)
+      if (zoneFocusedRef.current) returnToOverview()
     },
   }
 
-  const registerFeatureInteractions = useCallback((
-    map: mapboxgl.Map,
-    displayLayerId: string,
-    layer: MapLayer,
-    category: MapCategory,
-  ) => {
-    const isPark = layer.id === 'stay'
-    const showTooltip = (event: MapLayerMouseEvent) => {
-      const feature = event.features?.[0] as RenderedFeature | undefined
-      const properties = (feature?.properties ?? {}) as Record<string, unknown>
-      const hasDetail = featureHasDetail(properties)
-      map.getCanvas().style.cursor = hasDetail || isPark ? 'pointer' : 'default'
-      if (isPark) {
-        map.setPaintProperty(displayLayerId, 'fill-color', '#67c96a')
-        map.setPaintProperty(displayLayerId, 'fill-opacity', 0.6)
-        if (map.getLayer(`${displayLayerId}-highlight`)) {
-          map.setPaintProperty(`${displayLayerId}-highlight`, 'line-opacity', 0.78)
-          map.setPaintProperty(`${displayLayerId}-highlight`, 'line-width', 8)
-          map.setPaintProperty(`${displayLayerId}-highlight`, 'line-blur', 5)
-        }
-      }
-      popupRef.current?.remove()
-      popupRef.current = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-        className: 'graetzl-popup',
-        offset: 18,
-      })
-        .setLngLat(event.lngLat)
-        .setHTML(`<strong>${layer.label}</strong>`)
-        .addTo(map)
-    }
-    const clearTooltip = () => {
-      map.getCanvas().style.cursor = ''
-      popupRef.current?.remove()
-      popupRef.current = null
-      if (isPark) {
-        map.setPaintProperty(displayLayerId, 'fill-color', category.color)
-        map.setPaintProperty(displayLayerId, 'fill-opacity', 0.2)
-        if (map.getLayer(`${displayLayerId}-highlight`)) {
-          map.setPaintProperty(`${displayLayerId}-highlight`, 'line-opacity', 0)
-          map.setPaintProperty(`${displayLayerId}-highlight`, 'line-width', 0)
-        }
-      }
-    }
-    map.on('mouseenter', displayLayerId, (event) => {
-      if (isInsideFocusArea(event.lngLat)) showTooltip(event)
-    })
-    map.on('mousemove', displayLayerId, (event) => {
-      if (!isInsideFocusArea(event.lngLat)) {
-        if (popupRef.current) clearTooltip()
-      } else if (popupRef.current) {
-        popupRef.current.setLngLat(event.lngLat)
-      } else {
-        showTooltip(event)
-      }
-    })
-    map.on('mouseleave', displayLayerId, clearTooltip)
-
-    if (isPark) {
-      map.on('click', displayLayerId, (event) => {
-        if (!isInsideFocusArea(event.lngLat)) return
-        if (parkFocusedRef.current) {
-          returnToOverview(map)
-          return
-        }
-        const feature = event.features?.[0] as RenderedFeature | undefined
-        if (!feature) return
-        const bounds = geometryBounds(feature.geometry)
-        if (bounds.isEmpty()) return
-        popupRef.current?.remove()
-        closeDetail()
-        parkFocusedRef.current = true
-        zoneFocusedRef.current = true
-        setIsZoneFocused(true)
-        parkFocusZoomRef.current = null
-        setAudioScene('park', true)
-        map.fitBounds(bounds, {
-          padding: 24,
-          duration: 1100,
-          maxZoom: 20.5,
-          pitch: 15,
-          bearing: 0,
-        })
-        map.once('moveend', () => {
-          if (parkFocusedRef.current) parkFocusZoomRef.current = map.getZoom()
-        })
-      })
-    }
-
-    map.on('click', displayLayerId, (event) => {
-      if (!isInsideFocusArea(event.lngLat)) return
-      const feature = event.features?.[0] as RenderedFeature | undefined
-      const properties = (feature?.properties ?? {}) as Record<string, unknown>
-      if (!featureHasDetail(properties)) return
-      playModalClick()
-      openDetail({
-        layerId: layer.id,
-        layerLabel: layer.label,
-        categoryId: category.id,
-        featureId: featureId(properties),
-        properties,
-      })
-    })
-  }, [closeDetail, openDetail, playModalClick, returnToOverview, setAudioScene])
-
-  const loadCategory = useCallback(async (categoryId: CategoryId) => {
-    const map = mapRef.current
-    if (!map || !mapReadyRef.current) return
-    if (loadingRef.current.has(categoryId)) return loadingRef.current.get(categoryId)
-
-    const generation = generationRef.current
-    const category = categoryById.get(categoryId)!
-    const layers = mapLayers.filter((layer) => layer.categoryId === categoryId)
-    const promise = Promise.allSettled(layers.map(async (layer) => {
-      if (renderedLayersRef.current.has(layer.id)) return
-      const response = await fetch(queryUrl(layer), { signal: AbortSignal.timeout(12_000) })
-      if (!response.ok) throw new Error(`${layer.label}: ${response.status}`)
-      const geojson = await response.json() as GeoJsonFeatureCollection
-      if (generation !== generationRef.current || mapRef.current !== map) return
-
-      const displayLayerId = addGraetzlLayer({
-        map,
-        layer,
-        category,
-        geojson,
-        visible: visibleRef.current.has(categoryId),
-        revealed: markersRevealedRef.current,
-      })
-      bringFocusMaskToFront(map)
-      renderedLayersRef.current.add(layer.id)
-      map.getContainer().dataset.graetzlLayers = String(renderedLayersRef.current.size)
-      registerFeatureInteractions(map, displayLayerId, layer, category)
-    })).then((results) => {
-      if (generation !== generationRef.current) return
-      const failedLayerIds = results.flatMap((result, index) => result.status === 'rejected' ? [layers[index].id] : [])
-      if (failedLayerIds.length) {
-        map.getContainer().dataset.graetzlErrors = failedLayerIds.join(',')
-        setErrors((current) => new Set([...current, ...failedLayerIds]))
-      }
-      setLoaded((current) => new Set(current).add(categoryId))
-      loadingRef.current.delete(categoryId)
-    })
-
-    loadingRef.current.set(categoryId, promise)
-    return promise
-  }, [categoryById, registerFeatureInteractions])
-
   // 3D engine (three.js): build the city, load every data layer behind the intro, then allow the start
   useEffect(() => {
-    if (MAP_ENGINE !== 'iso' || !mapElementRef.current || isoRef.current) return
+    if (!mapElementRef.current || isoRef.current) return
     const iso = new IsoMap(mapElementRef.current, {
       onFeatureClick: (feature) => isoHandlersRef.current.click(feature),
       onZoneClick: (name) => isoHandlersRef.current.zone(name),
@@ -594,7 +429,7 @@ function App() {
         if (!inArea) {
         }
       },
-      // like on the Mapbox map: the drifting clouds fade away as soon as you zoom in
+      // the drifting clouds fade away as soon as you zoom in
       onZoom: (zoom) => skyRef.current?.style.setProperty('--sky-zoom', String(Math.max(0, Math.min(1, (17.3 - zoom) / 1.1)))),
     })
     // start screen: Lichtental is not highlighted yet, it looks like the rest of the city
@@ -607,7 +442,6 @@ function App() {
       iso.setGraetzlHighlighted(true)
       iso.setRevealed(true)
       iso.setInteractive(true)
-      markersRevealedRef.current = true
       setUiVisible(true)
     })
     void (async () => {
@@ -636,119 +470,9 @@ function App() {
   }, [categoryById])
 
   useEffect(() => {
-    if (MAP_ENGINE !== 'mapbox') return
-    if (!mapElementRef.current || mapRef.current) return
-    if (!MAPBOX_TOKEN) {
-      console.error('Mapbox token missing: set VITE_MAPBOX_TOKEN in .env')
-      return
-    }
-    mapboxgl.accessToken = MAPBOX_TOKEN
-    generationRef.current += 1
-    const map = new mapboxgl.Map({
-      container: mapElementRef.current,
-      style: STYLE_URL,
-      // the intro starts above the whole of Vienna and zooms in to the Grätzl (see zoomIntoGraetzl)
-      center: viennaCamera.center,
-      zoom: viennaCamera.zoom,
-      pitch: viennaCamera.pitch,
-      bearing: viennaCamera.bearing,
-      minZoom: 9,
-      maxZoom: 22,
-      maxPitch: 85,
-      renderWorldCopies: false,
-      fadeDuration: 0,
-      attributionControl: false,
-      antialias: true,
-    })
-    mapRef.current = map
-    map.on('error', (event) => console.error('Mapbox:', event.error))
-    // The drifting clouds belong to the overview: they fade away as soon as you zoom in.
-    const updateSky = () => {
-      const fade = Math.max(0, Math.min(1, (17.3 - map.getZoom()) / 1.1))
-      skyRef.current?.style.setProperty('--sky-zoom', String(fade))
-    }
-    map.on('zoom', updateSky)
-    map.on('zoomend', () => {
-      const focusZoom = parkFocusZoomRef.current
-      if (parkFocusedRef.current && focusZoom !== null && map.getZoom() < focusZoom - 0.3) {
-        returnToOverview(map)
-      }
-    })
-    map.on('click', (event) => {
-      if (!zoneFocusedRef.current) return
-      const focusLayers = ['graetzl-layer-stay'].filter((layerId) => map.getLayer(layerId))
-      if (!focusLayers.length) returnToOverview(map)
-      const clickedFocusedZone = map.queryRenderedFeatures(event.point, { layers: focusLayers }).length > 0
-      if (!clickedFocusedZone) returnToOverview(map)
-    })
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true, visualizePitch: true }), 'bottom-left')
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right')
-    const edgeFade = document.createElement('div')
-    edgeFade.className = 'map-edge-fade'
-    edgeFade.setAttribute('aria-hidden', 'true')
-    map.getCanvasContainer().appendChild(edgeFade)
-    map.on('load', () => {
-      mapReadyRef.current = true
-      applyWarm3DStyle(map)
-      addFocusMask(map)
-      // Preload everything behind the intro (all data layers, tiles of the target view), so the fly-in does not stutter.
-      const mapContainer = mapElementRef.current
-      if (mapContainer) mapContainer.style.opacity = '0'
-      const waitForIdle = (ms: number) => new Promise<void>((resolve) => {
-        const timer = window.setTimeout(resolve, ms)
-        map.once('idle', () => { window.clearTimeout(timer); resolve() })
-      })
-      const order = [...initialVisibleCategoryIds, ...categories.map((category) => category.id).filter((id) => !initialVisibleCategoryIds.has(id))]
-      void (async () => {
-        await Promise.allSettled(order.map((id) => loadCategory(id)))
-        const idleAtTarget = waitForIdle(7000)
-        map.jumpTo(startCamera)
-        await idleAtTarget
-        const idleAtIntro = waitForIdle(4000)
-        map.jumpTo(viennaCamera)
-        await idleAtIntro
-        if (mapContainer) mapContainer.style.opacity = ''
-        setMapWarm(true)
-      })()
-      window.setTimeout(() => {
-        if (mapContainer) mapContainer.style.opacity = ''
-        setMapWarm(true)
-      }, 12000)
-    })
-
-    return () => {
-      generationRef.current += 1
-      popupRef.current?.remove()
-      if (detailCloseTimerRef.current !== null) window.clearTimeout(detailCloseTimerRef.current)
-      map.remove()
-      mapRef.current = null
-      mapReadyRef.current = false
-      parkFocusedRef.current = false
-      zoneFocusedRef.current = false
-      setIsZoneFocused(false)
-      parkFocusZoomRef.current = null
-      renderedLayersRef.current.clear()
-      loadingRef.current.clear()
-    }
-  }, [loadCategory, returnToOverview])
-
-  useEffect(() => {
     const iso = isoRef.current
     if (iso) categories.forEach((category) => iso.setCategoryVisible(category.id, visible.has(category.id)))
-    const map = mapRef.current
-    if (!map || !mapReadyRef.current) return
-    categories.forEach((category) => {
-      const categoryLayers = mapLayers.filter((layer) => layer.categoryId === category.id)
-      if (visible.has(category.id)) void loadCategory(category.id)
-      categoryLayers.forEach((layer) => {
-        graetzlLayerIds(layer).forEach((relatedLayerId) => {
-          if (map.getLayer(relatedLayerId)) {
-            map.setLayoutProperty(relatedLayerId, 'visibility', visible.has(category.id) ? 'visible' : 'none')
-          }
-        })
-      })
-    })
-  }, [visible, loadCategory])
+  }, [visible])
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -784,14 +508,10 @@ function App() {
     // the click may start sound: unlock it now, it plays once the map is there
     unlockAudioRef.current()
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const map = mapRef.current
       const iso = isoRef.current
       if (iso) {
         iso.jumpTo(iso.startView())
         revealIso()
-      } else if (map) {
-        map.jumpTo(startCamera)
-        restrictToNeighbourhood(map)
       }
       setIntroOpen(false)
     } else setIntroLeaving(true)
@@ -800,24 +520,9 @@ function App() {
 
   // 3D engine: markers, UI and interaction only after the intro flight
   const revealIso = useCallback(() => {
-    markersRevealedRef.current = true
     setUiVisible(true)
     isoRef.current?.setRevealed(true)
     isoRef.current?.setInteractive(true)
-  }, [])
-
-  const restrictToNeighbourhood = useCallback((map: mapboxgl.Map) => {
-    // The markers only appear once the intro animation has finished.
-    markersRevealedRef.current = true
-    setUiVisible(true)
-    map.getStyle().layers?.forEach((styleLayer) => {
-      if (!styleLayer.id.startsWith('graetzl-layer-') || styleLayer.type !== 'symbol') return
-      map.setPaintProperty(styleLayer.id, 'icon-opacity', 1)
-      if (styleLayer.id.endsWith('-cluster')) map.setPaintProperty(styleLayer.id, 'text-opacity', 1)
-    })
-    map.setMinZoom(neighbourhoodMinZoom)
-    map.setMaxBounds(neighbourhoodBounds)
-    ;[map.dragPan, map.scrollZoom, map.touchZoomRotate, map.doubleClickZoom, map.keyboard, map.boxZoom].forEach((handler) => handler.enable())
   }, [])
 
   // Build the cloud mask ahead of time so the click can start the animation without a hitch.
@@ -829,14 +534,9 @@ function App() {
 
   useEffect(() => {
     if (!introLeaving) return
-    const flyMap = mapRef.current
     const flyIso = isoRef.current
     let restrictTimer: number | undefined
     if (flyIso) restrictTimer = window.setTimeout(revealIso, 7800)
-    if (flyMap) {
-      ;[flyMap.dragPan, flyMap.scrollZoom, flyMap.touchZoomRotate, flyMap.doubleClickZoom, flyMap.keyboard, flyMap.boxZoom].forEach((handler) => handler.disable())
-      restrictTimer = window.setTimeout(() => restrictToNeighbourhood(flyMap), INTRO_THEME === 'cloudy' || INTRO_THEME === 'green' || INTRO_THEME === 'poster' ? 7800 : 4200)
-    }
     const canvas = introCloudRef.current
     if (!canvas) {
       setIntroOpen(false)
@@ -865,7 +565,6 @@ function App() {
         .to(parts, { opacity: 0, y: -10, duration: .22, ease: 'power1.out' }, 0)
         .call(() => {
           if (flyIso) void flyIso.flyTo(flyIso.startView(), 3000).then(revealIso)
-          if (flyMap) void zoomIntoGraetzl(flyMap, 3000).then(() => restrictToNeighbourhood(flyMap))
         }, [], 0.02)
         .to(overlay, { '--veil': 0, duration: 1, ease: 'power1.inOut' }, 0.12)
       return () => { timeline.kill(); if (restrictTimer !== undefined) window.clearTimeout(restrictTimer) }
@@ -876,12 +575,9 @@ function App() {
         // Zoom from directly above first; only tilt after the Grätzl fills the view.
         flyIso?.setGraetzlHighlighted(true)
         if (flyIso) void flyIso.flyTo(flyIso.topView(), 3600).then(() => flyIso.flyTo(flyIso.startView(), 1500)).then(revealIso)
-        if (flyMap) void zoomIntoGraetzl(flyMap, 3600, 1500).then(() => restrictToNeighbourhood(flyMap))
         return
       }
       if (flyIso) void flyIso.flyTo(flyIso.startView(), 2650).then(revealIso)
-      flyMap?.easeTo({ ...startCamera, duration: 2650, essential: true, easing: (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) })
-      flyMap?.once('moveend', () => restrictToNeighbourhood(flyMap))
     }
     if (clouds) {
       // The camera dives through the clouds: they grow towards the viewer and dissolve (the nearer, the sooner),
@@ -894,8 +590,6 @@ function App() {
         .call(() => {
           // 3D map: from Vienna straight down onto the Grätzl, still from above; the tilt comes once we are there
           if (flyIso) void flyIso.flyTo(flyIso.topView(), 4000).then(() => flyIso.flyTo(flyIso.startView(), 1600)).then(revealIso)
-          // Mapbox: the same two steps
-          if (flyMap) void zoomIntoGraetzl(flyMap).then(() => restrictToNeighbourhood(flyMap))
         }, [], 0.02)
         .set([layer('near'), layer('mid'), layer('far')], { transformOrigin: origin }, 0)
         .to(layer('near'), { scale: 4.2, duration: 1.7, ease: 'power2.in' }, 0)
@@ -919,7 +613,7 @@ function App() {
         .to(overlay, { '--veil': 0, duration: 2.05 }, 0.35)
     }
     return () => { timeline.kill(); if (restrictTimer !== undefined) window.clearTimeout(restrictTimer) }
-  }, [introLeaving, restrictToNeighbourhood, revealIso])
+  }, [introLeaving, revealIso])
 
   const toggleCategory = (id: CategoryId) => {
     setVisible((current) => {
@@ -935,7 +629,7 @@ function App() {
   const selectedCategory = selected ? categoryById.get(selected.categoryId) : null
 
   return (
-    <main className={`app-shell look-${MAP_LOOK} engine-${MAP_ENGINE} ${uiVisible ? '' : 'ui-pending'}`}>
+    <main className={`app-shell look-${MAP_LOOK} engine-iso ${uiVisible ? '' : 'ui-pending'}`}>
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
         <filter id="sketch-line" x="-10%" y="-10%" width="120%" height="120%">
           <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="noise" />
@@ -962,7 +656,7 @@ function App() {
           <span className="cloud cloud-three" />
         </div>
 
-        <button className="overview-back" type="button" aria-label="Zurück zur Startansicht" onClick={() => (appMode !== 'ideas' && isoRef.current ? void isoRef.current.flyTo(isoRef.current.trafficView(), 1050) : returnToOverview(mapRef.current))} inert={introOpen || (!isAreaView && !isZoneFocused) || appMode !== 'ideas'} style={appMode !== 'ideas' ? { display: 'none' } : undefined}>
+        <button className="overview-back" type="button" aria-label="Zurück zur Startansicht" onClick={() => (appMode !== 'ideas' && isoRef.current ? void isoRef.current.flyTo(isoRef.current.trafficView(), 1050) : returnToOverview())} inert={introOpen || (!isAreaView && !isZoneFocused) || appMode !== 'ideas'} style={appMode !== 'ideas' ? { display: 'none' } : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12" /></svg>
           <span>Zurück</span>
         </button>
@@ -973,14 +667,14 @@ function App() {
           </div>
         )}
 
-        {MAP_ENGINE === 'iso' && !introOpen && appMode === 'ideas' && (holding || (isAreaView && !holdHintDone)) && (
+        {!introOpen && appMode === 'ideas' && (holding || (isAreaView && !holdHintDone)) && (
           <div className={`hold-hint ${holding ? 'is-holding' : ''}`} role="status">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v8" /><path d="M9 7.5V6a1.5 1.5 0 0 1 3 0M15 9.5V8a1.5 1.5 0 0 0-3 0M18 12v-1a1.5 1.5 0 0 0-3 0" /><path d="M9 7.5v5.2l-1.6-1.7a1.6 1.6 0 0 0-2.3 2.2L9 18a5 5 0 0 0 3.6 1.5H14a4 4 0 0 0 4-4V12" /></svg>
             <span>{holding ? 'Gescannte Pläne aus den Workshops' : 'Karte gedrückt halten, um die Pläne aus den Workshops zu sehen'}</span>
           </div>
         )}
 
-        {MAP_ENGINE === 'iso' && !introOpen && (
+        {!introOpen && (
           <MapDock
             mode={appMode}
             onMode={chooseAppMode}

@@ -1,4 +1,3 @@
-import type mapboxgl from 'mapbox-gl'
 import type { CategoryId, MapCategory } from './types'
 
 function drawGlyph(ctx: CanvasRenderingContext2D, id: CategoryId, color: string, scale = 1.55) {
@@ -135,22 +134,4 @@ export function markerUrl(category: MapCategory, cluster = false) {
   const url = paintMarker(category, cluster).toDataURL()
   markerCache.set(key, url)
   return url
-}
-
-export function addMarker(map: mapboxgl.Map, category: MapCategory) {
-  const id = `clean-marker-${category.id}`
-  if (!map.hasImage(id)) {
-    const ctx = paintMarker(category, false).getContext('2d')!
-    map.addImage(id, ctx.getImageData(0, 0, 80, 80), { pixelRatio: 2 })
-  }
-  return id
-}
-
-export function addCluster(map: mapboxgl.Map, category: MapCategory) {
-  const id = `clean-cluster-${category.id}`
-  if (!map.hasImage(id)) {
-    const ctx = paintMarker(category, true).getContext('2d')!
-    map.addImage(id, ctx.getImageData(0, 0, 80, 80), { pixelRatio: 2 })
-  }
-  return id
 }
