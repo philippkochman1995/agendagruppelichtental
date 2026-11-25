@@ -1279,3 +1279,12 @@ button { color: inherit; }
 /* credits at the end of the info: data source (required by the licence) and design */
 .about-credits { margin-top: 22px !important; padding-top: 14px; border-top: 1px solid rgba(0, 60, 43, .12); font-size: 12.5px; line-height: 1.6; color: #6b6a5f; }
 .about-credits a { color: inherit; text-underline-offset: 2px; }
+
+/* credit: small and quiet, bottom left, only at the start view of the Grätzl ideas and only on wide screens (on phones it is in the info) */
+.made-by {
+  position: absolute; left: 20px; bottom: 22px; z-index: 600; font: 500 11px/1.2 'Figtree', system-ui, sans-serif;
+  color: #8a8172; text-decoration: none; letter-spacing: .01em; transition: color .15s ease, opacity .3s ease;
+}
+.made-by:hover, .made-by:focus-visible { color: #14523b; text-decoration: underline; text-underline-offset: 2px; }
+.app-shell.ui-pending .made-by { opacity: 0; pointer-events: none; }
+@media (max-width: 720px) { .made-by { display: none; } }
