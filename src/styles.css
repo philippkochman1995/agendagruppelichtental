@@ -1285,3 +1285,7 @@ button { color: inherit; }
 @media (max-width: 720px) {
   .made-by { left: 14px; bottom: calc(62px + env(safe-area-inset-bottom)); }
 }
+
+/* credits at the end of the info: data source (required by the licence) and design */
+.about-credits { margin-top: 22px !important; padding-top: 14px; border-top: 1px solid rgba(0, 60, 43, .12); font-size: 12.5px; line-height: 1.6; color: #6b6a5f; }
+.about-credits a { color: inherit; text-underline-offset: 2px; }

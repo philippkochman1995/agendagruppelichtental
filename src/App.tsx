@@ -741,7 +741,7 @@ function App() {
         {aboutOpen && <AboutPanel onClose={() => setAboutOpen(false)} />}
 
         {!introOpen && appMode === 'ideas' && !isAreaView && !isZoneFocused && (
-          <a className="made-by" href="https://studiovis.at" target="_blank" rel="noopener">made by studiovis</a>
+          <a className="made-by" href="https://studiovis.at" target="_blank" rel="noopener">Design &amp; Dev: studiovis</a>
         )}
 
         {legendOpen && (

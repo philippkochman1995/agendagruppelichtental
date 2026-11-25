@@ -2048,7 +2048,7 @@ export class IsoMap {
       <button class="iso-zoom-in" type="button" aria-label="Hineinzoomen">${icon('<path d="M12 5v14M5 12h14"/>')}</button>
       <button class="iso-zoom-out" type="button" aria-label="Herauszoomen">${icon('<path d="M5 12h14"/>')}</button>
     </div></div>
-    <div class="iso-attribution">Daten: Stadt Wien – data.wien.gv.at (CC BY 4.0)</div>`
+`
     const zoom = (factor: number) => {
       if (!this.controls.enabled || this.locked) return
       const view = this.currentView()
