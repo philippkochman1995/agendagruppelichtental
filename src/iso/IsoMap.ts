@@ -301,21 +301,33 @@ function planRibbon(plan: StreetPlan, u0 = 0, u1 = 1) {
 const FLOW_PERIOD = 12
 
 /** Strip along a route, shifted sideways to its right-hand side; u runs in travel direction (one texture period = FLOW_PERIOD m). */
-function flowRibbon(route: [number, number][], width: number, shift: number) {
+function flowRibbon(route: [number, number][], width: number, shift: number, capped = false) {
   const points = route.map(([x, y]) => new THREE.Vector3(x, 1.0, -y))
   const lengths = [0]
   for (let i = 1; i < points.length; i++) lengths.push(lengths[i - 1] + points[i].distanceTo(points[i - 1]))
+  // capped (areas such as pedestrian zones): both ends reach half a width further, so zones meeting at a crossing close up
+  if (capped && points.length > 1) {
+    const first = new THREE.Vector3().subVectors(points[0], points[1]).setY(0).normalize()
+    const last = new THREE.Vector3().subVectors(points[points.length - 1], points[points.length - 2]).setY(0).normalize()
+    points[0].addScaledVector(first, width / 2)
+    points[points.length - 1].addScaledVector(last, width / 2)
+  }
+  const normalOf = (a: THREE.Vector3, b: THREE.Vector3) => {
+    const tangent = new THREE.Vector3().subVectors(b, a).setY(0).normalize()
+    return new THREE.Vector3(-tangent.z, 0, tangent.x)
+  }
   const positions: number[] = []
   const uvs: number[] = []
   const reveal: number[] = []
   const indices: number[] = []
   points.forEach((point, i) => {
-    const before = points[Math.max(0, i - 1)]
-    const after = points[Math.min(points.length - 1, i + 1)]
-    const tangent = new THREE.Vector3().subVectors(after, before).setY(0).normalize()
-    const right = new THREE.Vector3(-tangent.z, 0, tangent.x)
-    const centre = point.clone().addScaledVector(right, shift)
-    const half = right.clone().multiplyScalar(width / 2)
+    // mitred corners: the band keeps its full width round a bend (no notches)
+    const before = i > 0 ? normalOf(points[i - 1], point) : null
+    const after = i < points.length - 1 ? normalOf(point, points[i + 1]) : null
+    const right = before && after ? before.clone().add(after).normalize() : (before ?? after ?? new THREE.Vector3(1, 0, 0))
+    const stretch = before && after ? 1 / Math.max(0.45, right.dot(before)) : 1
+    const centre = point.clone().addScaledVector(right, shift * stretch)
+    const half = right.clone().multiplyScalar((width / 2) * stretch)
     positions.push(centre.x + half.x, centre.y, centre.z + half.z, centre.x - half.x, centre.y, centre.z - half.z)
     const u = lengths[i] / FLOW_PERIOD
     uvs.push(u, 0, u, 1)
@@ -895,7 +907,7 @@ export class IsoMap {
     this.trafficPedMaterial = material
     if (animate) this.pedAnim = { start: performance.now(), delay }
     pedestrian.forEach((route) => {
-      const mesh = new THREE.Mesh(flowRibbon(route, 9, 0), material)
+      const mesh = new THREE.Mesh(flowRibbon(route, 9, 0, true), material)
       mesh.renderOrder = 39
       this.scene.add(mesh)
       this.pedMeshes.push(mesh)
@@ -912,7 +924,7 @@ export class IsoMap {
       const texture = pedestrianTexture()
       this.basePedMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })
       trafficConcepts.neu.pedestrian?.forEach((route) => {
-        const mesh = new THREE.Mesh(flowRibbon(route, 9, 0), this.basePedMaterial!)
+        const mesh = new THREE.Mesh(flowRibbon(route, 9, 0, true), this.basePedMaterial!)
         mesh.renderOrder = 39
         this.scene.add(mesh)
         this.basePedMeshes.push(mesh)
@@ -1498,6 +1510,10 @@ export class IsoMap {
     const showInfo = () => {
       const rect = element.querySelector('.iso-pin-icon')!.getBoundingClientRect()
       this.showInfoTooltip(feature, rect.left + rect.width / 2, rect.top)
+      // the icon whose text shows gets the active ring (also after a tap on the phone)
+      this.activePin?.classList.remove('is-active')
+      this.activePin = element
+      element.classList.add('is-active')
     }
     element.addEventListener('pointerenter', (event) => { if (event.pointerType === 'mouse') showInfo() })
     element.addEventListener('pointerleave', (event) => { if (event.pointerType === 'mouse') this.hideInfoTooltip() })
@@ -1537,7 +1553,11 @@ export class IsoMap {
     this.infoTooltip.classList.add('is-visible')
   }
 
+  private activePin: HTMLElement | null = null
+
   private hideInfoTooltip() {
+    this.activePin?.classList.remove('is-active')
+    this.activePin = null
     this.hoveredFeature = null
     this.infoTooltip.classList.remove('is-visible')
   }

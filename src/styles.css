@@ -595,7 +595,7 @@ button { color: inherit; }
   cursor: pointer; pointer-events: auto; font: 700 10px/1 'Figtree', system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase;
 }
 .iso-pin-icon { position: absolute; left: 0; top: 0; width: 39px; height: 39px; border-radius: 50%; transition: transform .12s ease-out, box-shadow .12s ease-out; }
-.iso-pin:hover .iso-pin-icon, .iso-pin:focus-visible .iso-pin-icon { box-shadow: 0 0 0 2.5px #fdfbf8, 0 0 0 4.5px var(--c, #1f1f1d); }
+.iso-pin:hover .iso-pin-icon, .iso-pin:focus-visible .iso-pin-icon, .iso-pin.is-active .iso-pin-icon { box-shadow: 0 0 0 2.5px #fdfbf8, 0 0 0 4.5px var(--c, #1f1f1d); }
 .iso-pin:focus-visible { outline: 2px solid #14523b; outline-offset: 3px; border-radius: 50%; }
 .iso-info-tooltip {
   position: absolute; z-index: 5; width: max-content; max-width: min(330px, calc(100% - 24px));
@@ -1186,3 +1186,15 @@ button { color: inherit; }
 @media (max-width: 720px) {
   .iso-controls .mapboxgl-ctrl-bottom-left { display: none; }
 }
+
+/* start button: while the map loads behind it, it fills up like a loading bar; once full it is ready */
+.intro-poster .intro-button { position: relative; overflow: hidden; isolation: isolate; }
+.intro-poster .intro-button::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; z-index: -1; width: 100%; border-radius: inherit;
+  background: #003c2b; transition: width .45s cubic-bezier(.3, .8, .3, 1);
+}
+.intro-poster .intro-button[data-wait] { opacity: 1; background: rgba(0, 60, 43, .32); }
+.intro-poster .intro-button[data-wait]::before { width: 92%; animation: intro-load 7s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes intro-load { from { width: 6%; } to { width: 92%; } }
+.intro-poster .intro-button:hover:not(:disabled)::before, .intro-poster .intro-button:focus-visible::before { background: #0e7a52; }
+@media (prefers-reduced-motion: reduce) { .intro-poster .intro-button[data-wait]::before { animation: none; } }

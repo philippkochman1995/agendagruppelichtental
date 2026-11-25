@@ -225,8 +225,14 @@ function App() {
   }, [uiVisible, introOpen, startHint])
   useEffect(() => {
     if (startHint !== 'on') return
-    const timer = window.setTimeout(() => setStartHint('done'), 4200)
-    return () => window.clearTimeout(timer)
+    // about 3 seconds, or gone as soon as you touch or click anywhere
+    const timer = window.setTimeout(() => setStartHint('done'), 2900)
+    const dismiss = () => setStartHint('done')
+    window.addEventListener('pointerdown', dismiss, true)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('pointerdown', dismiss, true)
+    }
   }, [startHint])
   useEffect(() => { if (appMode !== 'ideas' && startHint === 'on') setStartHint('done') }, [appMode, startHint])
 
