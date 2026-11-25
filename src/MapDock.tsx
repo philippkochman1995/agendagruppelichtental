@@ -84,14 +84,14 @@ const trafficOptions: Option<TrafficMode>[] = [
   { value: 'neu', label: 'Neu' },
 ]
 
-/** each tour opens by itself only the first time its mode is chosen */
-const TOUR_DONE_KEYS = { traffic: 'graetzl-traffic-tour-done', trees: 'graetzl-trees-tour-done', garages: 'graetzl-garages-tour-done' }
-export type TourMode = keyof typeof TOUR_DONE_KEYS
+/** each tour opens by itself the first time its mode is chosen on this visit (a reload starts afresh) */
+const toursSeen = new Set<TourMode>()
+export type TourMode = 'traffic' | 'trees' | 'garages'
 export function readTourDone(mode: TourMode = 'traffic') {
-  try { return localStorage.getItem(TOUR_DONE_KEYS[mode]) === '1' } catch { return false }
+  return toursSeen.has(mode)
 }
 export function writeTourDone(mode: TourMode = 'traffic') {
-  try { localStorage.setItem(TOUR_DONE_KEYS[mode], '1') } catch { /* private mode: the tour just starts again next time */ }
+  toursSeen.add(mode)
 }
 
 /** bottom: room the card takes on phones; sideWidth: width of the card standing next to the Grätzl on wide screens */
