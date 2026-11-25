@@ -64,6 +64,11 @@ export function AboutPanel({ onClose }: { onClose: () => void }) {
           <p>Wie soll das Supergrätzl Lichtental konkret aussehen? Im Herbst 2023 haben wir unsere Nachbar:innen eingeladen, gemeinsam mit uns dieses Supergrätzl zu planen. In je einem Workshop pro Gasse haben insgesamt 250 Personen mit ihren Ideen, Wünschen und Erfahrungen mitgemacht. Die Ergebnisse sind auf dieser Karte zu sehen. In dieser digitalen Karte haben wir die vielfältigen Ideen in Kategorien gebündelt. Die meterlangen Originalpläne auf Papier kannst du auch hier ansehen.</p>
           <Slideshow />
           <p>Diese Website dokumentiert unsere Arbeit für ein Grätzl, das den Herausforderungen der Zukunft gewachsen ist.</p>
+          <div className="about-contact">
+            <strong>Du möchtest bei unserem Projekt mitmachen?</strong>
+            <span>Du erreichst uns unter:</span>
+            <a href="mailto:supergraetzl.lichtental@gmail.com">supergraetzl.lichtental@gmail.com</a>
+          </div>
           <p className="about-credits">
             Kartendaten: Stadt Wien – <a href="https://data.wien.gv.at" target="_blank" rel="noopener">data.wien.gv.at</a> (<a href="https://creativecommons.org/licenses/by/4.0/deed.de" target="_blank" rel="noopener">CC BY 4.0</a>)
             <br />
