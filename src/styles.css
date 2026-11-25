@@ -595,7 +595,13 @@ button { color: inherit; }
   cursor: pointer; pointer-events: auto; font: 700 10px/1 'Figtree', system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase;
 }
 .iso-pin-icon { position: absolute; left: 0; top: 0; width: 39px; height: 39px; border-radius: 50%; transition: transform .12s ease-out, box-shadow .12s ease-out; }
-.iso-pin:hover .iso-pin-icon, .iso-pin:focus-visible .iso-pin-icon, .iso-pin.is-active .iso-pin-icon { box-shadow: 0 0 0 2.5px #fdfbf8, 0 0 0 4.5px var(--c, #1f1f1d); }
+/* hover / active: a ring snug round the drawn circle. The marker image has room for its shadow around the circle
+   (circle Ø ≈ 29.7 px, centred at 19.5 / 18.5 px in the 39 px image), so the ring is its own circle behind the image, not a frame round the image */
+.iso-pin::before {
+  content: ''; position: absolute; z-index: -1; left: 19.5px; top: 18.5px; width: 36px; height: 36px; margin: -20px 0 0 -20px;
+  border: 2px solid var(--c, #1f1f1d); border-radius: 50%; background: none; opacity: 0; transition: opacity .12s ease-out;
+}
+.iso-pin:hover::before, .iso-pin:focus-visible::before, .iso-pin.is-active::before { opacity: 1; }
 .iso-pin:focus-visible { outline: 2px solid #14523b; outline-offset: 3px; border-radius: 50%; }
 .iso-info-tooltip {
   position: absolute; z-index: 5; width: max-content; max-width: min(330px, calc(100% - 24px));

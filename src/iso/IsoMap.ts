@@ -1776,7 +1776,8 @@ export class IsoMap {
     element.addEventListener('wheel', this.handlePinWheel, { passive: false })
     const zoomIn = () => {
       const view = this.currentView()
-      void this.flyTo({ ...view, x: Number(element.dataset.x), z: Number(element.dataset.z), distance: Math.max(this.controls.minDistance, view.distance * 0.45) }, 700)
+      // straight in to where the group opens into its single icons (the 'near' tier starts below 145), not to another ring of numbers
+      void this.flyTo({ ...view, x: Number(element.dataset.x), z: Number(element.dataset.z), distance: Math.max(this.controls.minDistance, Math.min(view.distance * 0.45, 130)) }, 900)
     }
     element.addEventListener('click', (event) => {
       event.stopPropagation()
