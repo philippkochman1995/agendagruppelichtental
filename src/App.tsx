@@ -56,6 +56,18 @@ function App() {
   const [legendOpen, setLegendOpen] = useState(false)
   /** the info about the project, from the button at the top right of the start view */
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [aboutLeaving, setAboutLeaving] = useState(false)
+  /** info: the camera tilts up to the sky, the text appears in front of it; back down to the map on close */
+  const openAbout = useCallback(() => {
+    setAboutLeaving(false)
+    setAboutOpen(true)
+    isoRef.current?.setSkyLook(true)
+  }, [])
+  const closeAbout = useCallback(() => {
+    setAboutLeaving(true)
+    isoRef.current?.setSkyLook(false, 1100)
+    window.setTimeout(() => { setAboutOpen(false); setAboutLeaving(false) }, 380)
+  }, [])
   const [selected, setSelected] = useState<FeatureSummary | null>(null)
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [holding, setHolding] = useState(false)
@@ -491,13 +503,13 @@ function App() {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (aboutOpen) setAboutOpen(false)
+      if (aboutOpen) closeAbout()
       else if (selected || selectedZone) closeDetail()
       else if (legendOpen) setLegendOpen(false)
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [closeDetail, selected, selectedZone, legendOpen, aboutOpen])
+  }, [closeDetail, selected, selectedZone, legendOpen, aboutOpen, closeAbout])
 
   useEffect(() => {
     const closeOnOutsidePointer = (event: PointerEvent) => {
@@ -655,7 +667,7 @@ function App() {
           <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </svg>
-      <section className={`map-stage ${isAreaView || isZoneFocused ? 'is-area-view' : ''} ${startHint !== 'done' ? 'is-start-hint' : ''}`} id="map" aria-label="Interaktive 3D-Karte von Liechtenthal">
+      <section className={`map-stage ${isAreaView || isZoneFocused ? 'is-area-view' : ''} ${startHint !== 'done' ? 'is-start-hint' : ''} ${aboutOpen && !aboutLeaving ? 'is-about' : ''}`} id="map" aria-label="Interaktive 3D-Karte von Liechtenthal">
         <div ref={mapElementRef} className="map-canvas" inert={introOpen} />
 
         {!introOpen && (
@@ -728,25 +740,29 @@ function App() {
             type="button"
             aria-label="Über das Supergrätzl Lichtental"
             aria-expanded={aboutOpen}
-            onClick={() => setAboutOpen(true)}
+            onClick={openAbout}
             inert={appMode !== 'ideas' || isAreaView || isZoneFocused}
             style={appMode !== 'ideas' || isAreaView || isZoneFocused ? { opacity: 0, pointerEvents: 'none' } : undefined}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2" /><path d="M12 11v5.5" /><circle cx="12" cy="7.6" r=".6" /></svg>
+            <span>Info</span>
           </button>
         )}
 
         {aboutOpen && (
-          <div className="about-overlay" onClick={(event) => { if (event.target === event.currentTarget) setAboutOpen(false) }}>
-            <aside className="about-panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
-              <button className="icon-button about-close" type="button" onClick={() => setAboutOpen(false)} aria-label="Info schließen"><svg className="sketch-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
+          <div className={`about-sky ${aboutLeaving ? 'is-leaving' : ''}`} role="dialog" aria-modal="true" aria-labelledby="about-title" onClick={(event) => { if (event.target === event.currentTarget) closeAbout() }}>
+            <div className="about-text">
               <h2 id="about-title">Supergrätzl Lichtental</h2>
               <p>Stell dir vor, dein Grätzl bietet mehr Orte zum Verweilen, zum Spielen und Entspannen. Raum für Aktivitäten, für die davor kein Platz war. So ein Grätzl braucht eine gerechte Verteilung des öffentlichen Raums. Weniger Stellplätze für Autos, dafür mehr Orte für eine gute Nachbarschaft. Auf dieser Website findest du eine Karte, auf der du die Forderungen unser Nachbar:innen für genau so ein Grätzl siehst. Ein Supergrätzl.</p>
               <p>Das Lichtental, unser Grätzl im 9. Bezirk, liegt zwischen Liechtensteinstraße, Althanstraße und Alserbachstraße. Es ist ein besonderes Grätzl, mit viel Schubert, einem Einhorn und der höchsten Dichte an Gemeindebauten im Bezirk. Im Zentrum liegt der Lichtentaler Park, die VHS Marktgasse, das Jugendzentrum, mehrere Kindergärten und die Schubertkirche.</p>
               <p>Wir wohnen im Grätzl und haben uns in den letzten Jahren viele Gedanken gemacht, wie wir das Leben im Lichtental verbessern könnten. Fasziniert hat uns die Idee des Supergrätzls - die Wiener Version eines stadtplanerischen Konzepts, wie man es schon in anderen Städten findet. In einem Supergrätzl ist die aktive Nutzung des öffentlichen Raums die Priorität. Autos sollen nicht mehr das Grätzl durchqueren und Stellplätze werden weitgehend entfernt. Mit Hilfe des Forschungsprojekts TuneOurBlock haben wir ein Verkehrskonzept für das Supergrätzl Lichtental entwickelt. Wir haben auch herausgefunden, dass 134 neue Bäume im Lichtental gepflanzt werden können (mehr dazu in den Forderungen und der Bibliothek).</p>
               <p>Wie soll das Supergrätzl Lichtental konkret aussehen? Im Herbst 2023 haben wir unsere Nachbar:innen eingeladen, gemeinsam mit uns dieses Supergrätzl zu planen. In je einem Workshop pro Gasse haben insgesamt 250 Personen mit ihren Ideen, Wünschen und Erfahrungen mitgemacht. Die Ergebnisse sind auf dieser Karte zu sehen. In dieser digitalen Karte haben wir die vielfältigen Ideen in Kategorien gebündelt. Die meterlangen Originalpläne auf Papier kannst du auch hier ansehen.</p>
               <p>Diese Website dokumentiert unsere Arbeit für ein Grätzl, das den Herausforderungen der Zukunft gewachsen ist.</p>
-            </aside>
+              <button className="about-back" type="button" onClick={closeAbout}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14" /><path d="m6 13 6 6 6-6" /></svg>
+                <span>Zurück zur Karte</span>
+              </button>
+            </div>
           </div>
         )}
 
