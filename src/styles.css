@@ -146,14 +146,14 @@ button { color: inherit; }
 .poster-unicorn { display: block; width: 100%; height: auto; }
 .intro-poster .poster-copy { flex: 0 0 auto; width: min(72vw, 700px); max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; transform: none; color: #003c2b; font: 600 clamp(18px, 3.3vw, 38px)/1.2 'Figtree', system-ui, sans-serif; text-align: center; }
 .poster-action { flex: 0 0 auto; display: flex; justify-content: center; width: auto; max-width: 92vw; }
-.intro-poster .intro-button { width: auto; max-width: 92vw; min-height: clamp(58px, 7dvh, 112px); margin: 0; padding: .55em 1em; justify-content: center; gap: .7em; border-radius: 999px; background: #003c2b; color: #fffaf1; font: 700 clamp(19px, 4.2vw, 46px)/1 'Figtree', system-ui, sans-serif; box-shadow: none; white-space: nowrap; }
+.intro-poster .intro-button { width: auto; max-width: 92vw; min-height: clamp(58px, 7dvh, 112px); margin: 0; padding: .55em 1em; justify-content: center; gap: .7em; border-radius: 999px; background: #17603f; color: #fffaf1; font: 700 clamp(19px, 4.2vw, 46px)/1 'Figtree', system-ui, sans-serif; box-shadow: none; white-space: nowrap; }
 .intro-poster .intro-button::after { display: none; }
 .intro-poster .intro-button:hover { background: #125a3c; transform: translateY(-2px); }
 .intro-poster .intro-button span:last-child { font-size: 1.3em; line-height: .5; }
 /* hover: snappy. The label shifts a touch, the arrow shoots right with a small overshoot; pressing squeezes the button. No loop. */
 .intro-poster .intro-button { transition: background-color .14s ease-out, transform .16s cubic-bezier(.2, 1.4, .4, 1); }
 .intro-poster .intro-button span { display: inline-block; transition: transform .2s cubic-bezier(.2, 1.7, .4, 1); }
-.intro-poster .intro-button:hover:not(:disabled), .intro-poster .intro-button:focus-visible { background: #0e7a52; transform: translateY(-3px); }
+.intro-poster .intro-button:hover:not(:disabled), .intro-poster .intro-button:focus-visible { background: #1f7a50; transform: translateY(-3px); }
 .intro-poster .intro-button:hover:not(:disabled) span:first-child, .intro-poster .intro-button:focus-visible span:first-child { transform: translateX(-.1em); }
 .intro-poster .intro-button:hover:not(:disabled) span:last-child, .intro-poster .intro-button:focus-visible span:last-child { transform: translateX(.45em); }
 .intro-poster .intro-button:active:not(:disabled) { transform: translateY(0) scale(.97); transition-duration: .06s; }
@@ -1191,11 +1191,11 @@ button { color: inherit; }
 /* start button: while the map loads behind it, it fills up like a loading bar; once full it is ready */
 .intro-poster .intro-button { position: relative; overflow: hidden; isolation: isolate; }
 .intro-poster .intro-button::before {
-  content: ''; position: absolute; inset: 0 auto 0 0; z-index: -1; width: 100%; border-radius: inherit;
-  background: #003c2b; transition: width .45s cubic-bezier(.3, .8, .3, 1);
+  content: ''; position: absolute; inset: 0 auto 0 0; z-index: -1; width: 100%; border-radius: 0;
+  background: #17603f; transition: width .45s cubic-bezier(.3, .8, .3, 1);
 }
-.intro-poster .intro-button[data-wait] { opacity: 1; background: rgba(0, 60, 43, .32); }
+.intro-poster .intro-button[data-wait] { opacity: 1; background: rgba(23, 96, 63, .38); }
 .intro-poster .intro-button[data-wait]::before { width: 92%; animation: intro-load 7s cubic-bezier(.2, .7, .3, 1) both; }
 @keyframes intro-load { from { width: 6%; } to { width: 92%; } }
-.intro-poster .intro-button:hover:not(:disabled)::before, .intro-poster .intro-button:focus-visible::before { background: #0e7a52; }
+.intro-poster .intro-button:hover:not(:disabled)::before, .intro-poster .intro-button:focus-visible::before { background: #1f7a50; }
 @media (prefers-reduced-motion: reduce) { .intro-poster .intro-button[data-wait]::before { animation: none; } }
