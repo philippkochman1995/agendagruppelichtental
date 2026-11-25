@@ -490,8 +490,8 @@ function pedestrianTexture() {
   canvas.width = 64
   canvas.height = 64
   const context = canvas.getContext('2d')!
-  // plain green, no edge dashes
-  context.fillStyle = 'rgba(96, 164, 32, 0.82)'
+  // plain, fully opaque green: where two zones overlap at a crossing they merge into one surface (no darker patches)
+  context.fillStyle = '#79af42'
   context.fillRect(0, 0, 64, 64)
   const texture = new THREE.CanvasTexture(canvas)
   texture.wrapS = THREE.RepeatWrapping
@@ -538,9 +538,11 @@ export class IsoMap {
   private readonly pinLayer: HTMLDivElement
   private readonly infoTooltip: HTMLDivElement
   private hoveredFeature: IsoFeature | null = null
-  /** touches on the map right now (a tap on an icon during a pinch is no tap) */
-  private activeTouches = 0
-  private pinchSeen = false
+  /**
+   * Touch screens: icons let every touch through to the map (moving and pinch-zooming work wherever the fingers land);
+   * a tap is recognised by the map and handed to the icon under the finger.
+   */
+  private readonly tapActions = new Map<HTMLElement, () => void>()
   private readonly streetLayer: HTMLDivElement
   private readonly districtLayer: HTMLDivElement
   private readonly districtLabels: { element: HTMLSpanElement; position: THREE.Vector3 }[] = []
@@ -705,9 +707,6 @@ export class IsoMap {
     this.jumpTo(this.introView())
 
     this.renderer.domElement.addEventListener('pointerdown', this.handlePointerDown)
-    window.addEventListener('pointerdown', this.countTouch, true)
-    window.addEventListener('pointerup', this.countTouch, true)
-    window.addEventListener('pointercancel', this.countTouch, true)
     container.addEventListener('pointerdown', this.handleHoldDown)
     container.addEventListener('pointermove', this.handleHoldMove)
     container.addEventListener('pointerup', this.handleHoldEnd)
@@ -1509,7 +1508,7 @@ export class IsoMap {
       event.stopPropagation()
       showInfo()
     })
-    this.passTouchToMap(element, showInfo)
+    this.tapActions.set(element, showInfo)
     this.pinLayer.appendChild(element)
     this.pins.push({ element, position, categoryId: category.id, category, layerId: layer.id, x: 0, y: 0, on: false })
   }
@@ -1720,42 +1719,6 @@ export class IsoMap {
     }
   }
 
-  /**
-   * Touch: a finger that lands on an icon still moves and pinch-zooms the map (there are many icons, it happens easily).
-   * The touch is handed to the map; only a short tap without moving counts as a tap on the icon.
-   */
-  private countTouch = (event: PointerEvent) => {
-    if (event.pointerType === 'mouse' || !event.isTrusted) return
-    if (event.type === 'pointerdown') {
-      if (this.activeTouches > 0) this.pinchSeen = true
-      this.activeTouches++
-    } else this.activeTouches = Math.max(0, this.activeTouches - 1)
-  }
-
-  private passTouchToMap(element: HTMLElement, onTap: () => void) {
-    element.addEventListener('pointerdown', (event) => {
-      if (event.pointerType === 'mouse') return
-      event.preventDefault()
-      event.stopPropagation()
-      const start = { x: event.clientX, y: event.clientY, time: performance.now(), id: event.pointerId }
-      let moved = false
-      const move = (next: PointerEvent) => {
-        if (next.pointerId === start.id && Math.hypot(next.clientX - start.x, next.clientY - start.y) > 8) moved = true
-      }
-      const up = (next: PointerEvent) => {
-        if (next.pointerId !== start.id) return
-        window.removeEventListener('pointermove', move, true)
-        window.removeEventListener('pointerup', up, true)
-        window.removeEventListener('pointercancel', up, true)
-        if (next.type === 'pointerup' && !moved && performance.now() - start.time < 500 && !this.pinchSeen) onTap()
-      }
-      window.addEventListener('pointermove', move, true)
-      window.addEventListener('pointerup', up, true)
-      window.addEventListener('pointercancel', up, true)
-      if (this.activeTouches <= 1) this.pinchSeen = false
-      this.renderer.domElement.dispatchEvent(new PointerEvent('pointerdown', event))
-    })
-  }
 
   private clusterElement(key: string) {
     const existing = this.clusterPool.get(key)
@@ -1773,7 +1736,7 @@ export class IsoMap {
       event.stopPropagation()
       zoomIn()
     })
-    this.passTouchToMap(element, zoomIn)
+    this.tapActions.set(element, zoomIn)
     this.pinLayer.appendChild(element)
     this.clusterPool.set(key, element)
     return element
@@ -2044,6 +2007,16 @@ export class IsoMap {
     if (this.pinLayer.classList.contains('is-overview') && this.hoveredZone) {
       this.hoveredZone.tip.click()
       return
+    }
+    // touch: the icons let touches through, so a tap on one arrives here
+    for (const [element, action] of this.tapActions) {
+      if (this.pinLayer.classList.contains('is-pins-hidden')) break
+      if (element.style.display === 'none' || !element.isConnected) continue
+      const rect = element.getBoundingClientRect()
+      if (event.clientX >= rect.left - 4 && event.clientX <= rect.right + 4 && event.clientY >= rect.top - 4 && event.clientY <= rect.bottom + 4) {
+        action()
+        return
+      }
     }
     const hit = this.pick(event)
     this.hideInfoTooltip()
@@ -2432,9 +2405,6 @@ export class IsoMap {
     this.renderer.domElement.removeEventListener('pointermove', this.handleHover)
     this.renderer.domElement.removeEventListener('pointerleave', this.handlePointerLeave)
     this.renderer.domElement.removeEventListener('wheel', this.handleWheel, { capture: true })
-    window.removeEventListener('pointerdown', this.countTouch, true)
-    window.removeEventListener('pointerup', this.countTouch, true)
-    window.removeEventListener('pointercancel', this.countTouch, true)
     this.renderer.domElement.removeEventListener('dblclick', this.handleDoubleClick)
     this.renderer.dispose()
     this.container.replaceChildren()
