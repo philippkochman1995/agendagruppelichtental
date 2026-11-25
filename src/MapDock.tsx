@@ -139,7 +139,7 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
     const step = treeSteps[treeStep]
     const same = treeSteps.filter((candidate) => candidate.view === step.view)
     card = {
-      key: `b${treeStep}`, title: step.title, text: step.text, tone: step.view === 'aktuell' ? 'is-aktuell' : '', index: same.indexOf(step) + 1, count: same.length,
+      key: `b${treeStep}`, title: step.title, text: step.text, tone: step.view === 'aktuell' ? 'is-bestand' : '', index: same.indexOf(step) + 1, count: same.length,
       last: treeStep + 1 >= treeSteps.length, next: () => (treeStep + 1 < treeSteps.length ? onTreeStep(treeStep + 1) : onTreeClose()),
     }
   }
@@ -183,7 +183,7 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
       )}
       {mode === 'garages' && (
         <div className="map-top">
-          <SegmentedControl options={trafficOptions} value={garageStep !== null ? 'neu' : garageView} onChange={onGarageView} label="Garagen: aktuell oder Supergrätzl" size="sm" tone={garageStep !== null || garageView === 'neu' ? 'blue' : 'red'} />
+          <SegmentedControl options={trafficOptions} value={garageStep !== null ? 'neu' : garageView} onChange={onGarageView} label="Garagen: aktuell oder Supergrätzl" size="sm" tone={garageStep !== null || garageView === 'neu' ? 'green' : 'red'} />
           <button type="button" className={`tour-info ${garageStep !== null ? 'is-on' : ''}`} aria-pressed={garageStep !== null} aria-label="Garagen-Initiative erklären" onClick={() => (garageStep === null ? onGarageStep(0) : onGarageClose())}>?</button>
         </div>
       )}

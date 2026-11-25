@@ -1105,9 +1105,6 @@ button { color: inherit; }
 .seg-sm.seg-green .seg-option[aria-checked="true"] { color: #0c8a40; }
 
 .tour-note { margin: 6px 0 0 !important; font-size: 12px; opacity: .75; }
-.tour-card.is-aktuell { background: #e9f1f8; color: #1f3346; box-shadow: 0 10px 30px rgba(20, 50, 80, .2), 0 0 0 1px rgba(47, 111, 159, .18); }
-.tour-card.is-aktuell strong { color: #2f6f9f; }
-.tour-card.is-aktuell .tour-next { background: #2f6f9f; }
 
 /* ------------------------------------------------------------------------------------------------
    Garagen-Initiative: blue mood like a parking sign, symbols on the map
@@ -1277,3 +1274,14 @@ button { color: inherit; }
   @keyframes about-sheet-out { to { transform: translateY(100%); } }
 }
 @media (prefers-reduced-motion: reduce) { .about-overlay, .about-panel { animation: none; } }
+
+/* credit: small and quiet, bottom left, only at the start view of the Grätzl ideas */
+.made-by {
+  position: absolute; left: 20px; bottom: 22px; z-index: 600; font: 500 11px/1.2 'Figtree', system-ui, sans-serif;
+  color: #8a8172; text-decoration: none; letter-spacing: .01em; transition: color .15s ease, opacity .3s ease;
+}
+.made-by:hover, .made-by:focus-visible { color: #14523b; text-decoration: underline; text-underline-offset: 2px; }
+.app-shell.ui-pending .made-by { opacity: 0; pointer-events: none; }
+@media (max-width: 720px) {
+  .made-by { left: 14px; bottom: calc(62px + env(safe-area-inset-bottom)); }
+}

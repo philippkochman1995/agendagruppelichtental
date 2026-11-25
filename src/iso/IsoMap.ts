@@ -1050,9 +1050,9 @@ export class IsoMap {
 
   /** Close-up rectangle around the new trees at the Reznicekgasse (local metres), for the camera */
   coolFocus() {
-    // close on the middle of the Reznicekgasse (Marktgasse to Wiesengasse): with all 134 spots the trees line the whole street,
-    // framing them all would be too far away
-    return { x: -42, y: 140, width: 140, height: 90 }
+    // straight from above, close on the Reznicekgasse towards its corner with the Liechtensteinstraße
+    // (with all 134 spots the trees line the whole street, framing them all would be too far away)
+    return { x: -118, y: 118, width: 62, height: 42 }
   }
 
   /**
