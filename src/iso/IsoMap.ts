@@ -9,6 +9,7 @@ import { getDemoDetail } from '../demoDetails'
 import { streetPlans, type StreetPlan } from '../streetPlans'
 import { planTiles } from '../planTiles'
 import { trafficConcepts, type TrafficMode, type TrafficFlow } from '../traffic'
+import { PLANNED_TREES } from './plannedTrees'
 import { GarageScene, type GarageInput, type GarageStage } from './garageScene'
 import type { CategoryId, GeoJsonFeatureCollection, MapCategory, MapLayer } from '../types'
 
@@ -1112,51 +1113,19 @@ export class IsoMap {
     })
   }
 
-  /** Number of greening and shade wishes (new trees) from the workshops that are on the map */
+  /** Number of possible new trees on the map */
   treeCount() {
     return this.treeSpots().length
   }
 
-  /** Greening and shade wishes of the workshops, spread so that no two new trees overlap (or sit on an existing tree) */
+  /** The 134 possible tree spots of the tree analysis (Studio LAUT), as they stand on the plan */
   private treeSpots() {
-    const wishes = this.pins.filter((pin) => pin.layerId === 'greening' || pin.layerId === 'shade')
-    const spots = wishes.map((pin) => ({ x: pin.position.x, z: pin.position.z, ox: pin.position.x, oz: pin.position.z, r: 3.4 }))
-    const minDistance = 8
-    for (let pass = 0; pass < 60; pass++) {
-      let moved = false
-      spots.forEach((a, i) => {
-        for (let j = i + 1; j < spots.length; j++) {
-          const b = spots[j]
-          let dx = b.x - a.x, dz = b.z - a.z
-          let d = Math.hypot(dx, dz)
-          if (d >= minDistance) continue
-          if (d < 0.01) { dx = Math.cos(i + j); dz = Math.sin(i + j); d = 1 }
-          const push = (minDistance - d) / 2
-          a.x -= (dx / d) * push; a.z -= (dz / d) * push
-          b.x += (dx / d) * push; b.z += (dz / d) * push
-          moved = true
-        }
-        // keep clear of trees that already stand there
-        this.standingTrees.forEach((tree) => {
-          const dx = a.x - tree.x, dz = a.z - tree.z
-          const d = Math.hypot(dx, dz) || 0.01
-          const wanted = a.r + tree.r * 0.8
-          if (d >= wanted) return
-          a.x += (dx / d) * (wanted - d); a.z += (dz / d) * (wanted - d)
-          moved = true
-        })
-        // never drift far from the wish itself
-        const drift = Math.hypot(a.x - a.ox, a.z - a.oz)
-        if (drift > 12) { a.x = a.ox + ((a.x - a.ox) / drift) * 12; a.z = a.oz + ((a.z - a.oz) / drift) * 12 }
-      })
-      if (!moved) break
-    }
-    return spots
+    return PLANNED_TREES.map(([x, y]) => ({ x, z: -y, r: 3.4 }))
   }
 
   /**
-   * New trees: at every greening wish from the workshops (where the tree icons are) a tree pops up, drawn exactly like the
-   * trees the map already has (same crown and trunk, in warm colours). (Where the 134 possible spots of the tree analysis lie is not in the data yet.)
+   * New trees: at each of the 134 possible spots of the tree analysis a tree pops up, drawn exactly like the
+   * trees the map already has (same crown and trunk, in warm colours).
    */
   setTreesView(on: boolean) {
     this.treeObjects.forEach((object) => {

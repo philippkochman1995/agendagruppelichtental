@@ -70,7 +70,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, l
 
 const treesViewOptions: Option<TreesView>[] = [
   { value: 'aktuell', label: 'Aktuell' },
-  { value: 'neu', label: 'Neu' },
+  { value: 'neu', label: 'Supergrätzl' },
 ]
 const modeOptions: Option<AppMode>[] = [
   { value: 'ideas', label: 'Grätzl-Ideen' },
@@ -81,7 +81,7 @@ const modeOptions: Option<AppMode>[] = [
 export type GarageView = 'bestand' | 'neu'
 const trafficOptions: Option<TrafficMode>[] = [
   { value: 'bestand', label: 'Bestand' },
-  { value: 'neu', label: 'Neu' },
+  { value: 'neu', label: 'Supergrätzl' },
 ]
 
 /** each tour opens by itself the first time its mode is chosen on this visit (a reload starts afresh) */

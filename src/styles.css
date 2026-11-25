@@ -706,8 +706,11 @@ button { color: inherit; }
   content: ''; position: absolute; left: 50%; bottom: -7px; width: 14px; height: 14px; margin-left: -7px;
   background: var(--paper, #fffdf8); transform: rotate(45deg); border-radius: 2px;
 }
-.iso-area:hover, .iso-area.is-hover { scale: 1.05; background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
-.iso-area.is-hover::after { background: #fff4d6; }
+/* hover: no growing (it made the bubbles jump), only the yellow frame, which runs round the arrow too */
+.iso-area:hover, .iso-area.is-hover { background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
+.iso-area:hover::after, .iso-area.is-hover::after { background: #fff4d6; box-shadow: 2px 2px 0 0 #ffc24a; }
+.iso-area.side-left:hover::after, .iso-area.side-left.is-hover::after { box-shadow: 2px -2px 0 0 #ffc24a; }
+.iso-area.side-right:hover::after, .iso-area.side-right.is-hover::after { box-shadow: -2px 2px 0 0 #ffc24a; }
 .iso-area-dot { width: 30px; height: 30px; flex: none; }
 .iso-area-dot img { width: 100%; height: 100%; display: block; }
 .iso-area-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
@@ -1211,24 +1214,50 @@ button { color: inherit; }
 .about-trigger:hover, .about-trigger:focus-visible { opacity: .75; }
 .about-trigger svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
 .app-shell.ui-pending .about-trigger { opacity: 0; pointer-events: none; }
-.about-overlay {
-  position: absolute; inset: 0; z-index: 900; display: grid; place-items: center; padding: 20px;
-  background: rgba(20, 40, 30, .28); animation: about-fade .2s ease-out both;
-}
+/* info: slides in from the right (from below on phones), the team photo above the headline */
+.about-overlay { position: absolute; inset: 0; z-index: 900; background: rgba(20, 40, 30, .22); animation: about-fade .25s ease-out both; }
+.about-overlay.is-leaving { animation: about-fade-out .26s ease-in both; }
 .about-panel {
-  position: relative; width: min(560px, 100%); max-height: min(78vh, 720px); overflow-y: auto; padding: 30px 30px 26px;
-  border-radius: 18px; background: #fffaf1; color: #23312a; box-shadow: 0 18px 50px rgba(0, 40, 28, .25);
-  font: 400 15px/1.55 'Figtree', system-ui, sans-serif; animation: about-in .26s cubic-bezier(.2, .8, .2, 1) both;
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(470px, 92vw); overflow-y: auto; overscroll-behavior: contain;
+  background: #fffaf1; color: #23312a; box-shadow: -14px 0 40px rgba(0, 40, 28, .18);
+  font: 400 15px/1.6 'Figtree', system-ui, sans-serif; animation: about-slide-in .32s cubic-bezier(.2, .8, .2, 1) both;
 }
-.about-panel h2 { margin: 0 44px 12px 0; font: 800 22px/1.2 'Figtree', system-ui, sans-serif; color: #003c2b; }
-.about-panel p { margin: 0 0 12px; }
-.about-panel p:last-child { margin-bottom: 0; }
-.about-close { position: absolute; top: 18px; right: 18px; }
+.about-overlay.is-leaving .about-panel { animation: about-slide-out .26s ease-in both; }
+.about-photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.about-body { padding: 22px 28px 32px; }
+.about-body h2 { margin: 0 0 12px; font: 800 24px/1.15 'Figtree', system-ui, sans-serif; color: #003c2b; }
+.about-body p { margin: 0 0 13px; }
+.about-close {
+  position: absolute; top: 14px; right: 14px; z-index: 2; width: 38px; height: 38px; display: grid; place-items: center; padding: 0; border: 0;
+  border-radius: 50%; cursor: pointer; background: rgba(255, 250, 241, .94); color: #123f32; box-shadow: 0 3px 12px rgba(0, 0, 0, .18);
+}
+.about-close:hover, .about-close:focus-visible { background: #fff; }
+/* workshop photos: swipe or arrows, one at a time */
+.about-slides { position: relative; margin: 4px -28px 18px; }
+.about-slides-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.about-slides-track::-webkit-scrollbar { display: none; }
+.about-slides-track img { flex: 0 0 100%; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; scroll-snap-align: start; }
+.about-slides-arrow {
+  position: absolute; top: calc(50% - 30px); width: 36px; height: 36px; display: grid; place-items: center; padding: 0 0 3px; border: 0; border-radius: 50%;
+  cursor: pointer; background: rgba(255, 250, 241, .9); color: #123f32; font: 700 24px/1 'Figtree', system-ui, sans-serif; box-shadow: 0 3px 10px rgba(0, 0, 0, .2);
+}
+.about-slides-arrow.is-prev { left: 12px; }
+.about-slides-arrow.is-next { right: 12px; }
+.about-slides-dots { display: flex; justify-content: center; gap: 7px; margin-top: 10px; }
+.about-slides-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: rgba(0, 60, 43, .22); }
+.about-slides-dots button.is-on { background: #17603f; }
 @keyframes about-fade { from { opacity: 0; } }
-@keyframes about-in { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+@keyframes about-fade-out { to { opacity: 0; } }
+@keyframes about-slide-in { from { transform: translateX(100%); } }
+@keyframes about-slide-out { to { transform: translateX(100%); } }
 @media (max-width: 720px) {
   .about-trigger { right: 12px; top: calc(12px + env(safe-area-inset-top)); }
-  .about-overlay { place-items: end center; padding: 0; }
-  .about-panel { width: 100%; max-height: 82vh; border-radius: 18px 18px 0 0; padding: 24px 20px calc(22px + env(safe-area-inset-bottom)); font-size: 14.5px; }
+  .about-panel { top: auto; left: 0; width: auto; max-height: 88vh; border-radius: 18px 18px 0 0; box-shadow: 0 -10px 34px rgba(0, 40, 28, .2); font-size: 14.5px; animation-name: about-sheet-in; }
+  .about-overlay.is-leaving .about-panel { animation-name: about-sheet-out; }
+  .about-photo { border-radius: 18px 18px 0 0; }
+  .about-body { padding: 18px 20px calc(26px + env(safe-area-inset-bottom)); }
+  .about-slides { margin: 4px -20px 16px; }
+  @keyframes about-sheet-in { from { transform: translateY(100%); } }
+  @keyframes about-sheet-out { to { transform: translateY(100%); } }
 }
 @media (prefers-reduced-motion: reduce) { .about-overlay, .about-panel { animation: none; } }

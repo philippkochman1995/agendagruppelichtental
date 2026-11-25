@@ -10,6 +10,7 @@ import { createIntroCloudReveal } from './introCloudReveal'
 import { glyphDataUrl } from './cleanMarkers'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TrafficMode } from './traffic'
+import { AboutPanel } from './AboutPanel'
 import { MapDock, readTourDone, writeTourDone, type AppMode, type GarageView, type TourInsets, type TreesView } from './MapDock'
 import { PARK_FOCUS, firstStepOf, firstTreeStepOf, garageSteps, tourSteps, treeSteps } from './trafficTour'
 import { categories, initialVisibleCategoryIds, mapLayers } from './layers'
@@ -491,8 +492,8 @@ function App() {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (aboutOpen) setAboutOpen(false)
-      else if (selected || selectedZone) closeDetail()
+      if (aboutOpen) return
+      if (selected || selectedZone) closeDetail()
       else if (legendOpen) setLegendOpen(false)
     }
     window.addEventListener('keydown', closeOnEscape)
@@ -737,19 +738,7 @@ function App() {
           </button>
         )}
 
-        {aboutOpen && (
-          <div className="about-overlay" onClick={(event) => { if (event.target === event.currentTarget) setAboutOpen(false) }}>
-            <aside className="about-panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
-              <button className="icon-button about-close" type="button" onClick={() => setAboutOpen(false)} aria-label="Info schließen"><svg className="sketch-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
-              <h2 id="about-title">Supergrätzl Lichtental</h2>
-              <p>Stell dir vor, dein Grätzl bietet mehr Orte zum Verweilen, zum Spielen und Entspannen. Raum für Aktivitäten, für die davor kein Platz war. So ein Grätzl braucht eine gerechte Verteilung des öffentlichen Raums. Weniger Stellplätze für Autos, dafür mehr Orte für eine gute Nachbarschaft. Auf dieser Website findest du eine Karte, auf der du die Forderungen unser Nachbar:innen für genau so ein Grätzl siehst. Ein Supergrätzl.</p>
-              <p>Das Lichtental, unser Grätzl im 9. Bezirk, liegt zwischen Liechtensteinstraße, Althanstraße und Alserbachstraße. Es ist ein besonderes Grätzl, mit viel Schubert, einem Einhorn und der höchsten Dichte an Gemeindebauten im Bezirk. Im Zentrum liegt der Lichtentaler Park, die VHS Marktgasse, das Jugendzentrum, mehrere Kindergärten und die Schubertkirche.</p>
-              <p>Wir wohnen im Grätzl und haben uns in den letzten Jahren viele Gedanken gemacht, wie wir das Leben im Lichtental verbessern könnten. Fasziniert hat uns die Idee des Supergrätzls - die Wiener Version eines stadtplanerischen Konzepts, wie man es schon in anderen Städten findet. In einem Supergrätzl ist die aktive Nutzung des öffentlichen Raums die Priorität. Autos sollen nicht mehr das Grätzl durchqueren und Stellplätze werden weitgehend entfernt. Mit Hilfe des Forschungsprojekts TuneOurBlock haben wir ein Verkehrskonzept für das Supergrätzl Lichtental entwickelt. Wir haben auch herausgefunden, dass 134 neue Bäume im Lichtental gepflanzt werden können (mehr dazu in den Forderungen und der Bibliothek).</p>
-              <p>Wie soll das Supergrätzl Lichtental konkret aussehen? Im Herbst 2023 haben wir unsere Nachbar:innen eingeladen, gemeinsam mit uns dieses Supergrätzl zu planen. In je einem Workshop pro Gasse haben insgesamt 250 Personen mit ihren Ideen, Wünschen und Erfahrungen mitgemacht. Die Ergebnisse sind auf dieser Karte zu sehen. In dieser digitalen Karte haben wir die vielfältigen Ideen in Kategorien gebündelt. Die meterlangen Originalpläne auf Papier kannst du auch hier ansehen.</p>
-              <p>Diese Website dokumentiert unsere Arbeit für ein Grätzl, das den Herausforderungen der Zukunft gewachsen ist.</p>
-            </aside>
-          </div>
-        )}
+        {aboutOpen && <AboutPanel onClose={() => setAboutOpen(false)} />}
 
         {legendOpen && (
           <aside ref={legendPanelRef} className="legend-panel" id="legend-panel" aria-label="Kartenfilter">
