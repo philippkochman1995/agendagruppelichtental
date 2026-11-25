@@ -707,7 +707,7 @@ button { color: inherit; }
   background: var(--paper, #fffdf8); transform: rotate(45deg); border-radius: 2px;
 }
 /* hover: a small move towards its area (no growing), plus the yellow frame, which runs round the arrow too */
-.iso-area:hover, .iso-area.is-hover { margin-top: -10.5px; background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
+.iso-area:hover, .iso-area.is-hover { margin-top: -12.5px; background: #fff4d6; box-shadow: 0 6px 18px rgba(31, 31, 29, .24), 0 0 0 2px #ffc24a; }
 .iso-area.side-left:hover, .iso-area.side-left.is-hover { margin: 0 0 0 5px; }
 .iso-area.side-right:hover, .iso-area.side-right.is-hover { margin: 0 0 0 -5px; }
 .iso-area:hover::after, .iso-area.is-hover::after { background: #fff4d6; box-shadow: 2px 2px 0 0 #ffc24a; }
