@@ -1347,7 +1347,9 @@ export class IsoMap {
     const center = bounds.getCenter(new THREE.Vector3())
     const size = bounds.getSize(new THREE.Vector3())
     const extent = Math.max(size.x, size.z, 40)
-    return this.flyTo({ x: center.x, z: center.z, distance: extent * 2.3, pitch: 32, bearing: 0 }, duration)
+    // the angle stays as it is (no tilting): only the centre and the distance change
+    const { pitch, bearing } = this.currentView()
+    return this.flyTo({ x: center.x, z: center.z, distance: extent * 2.3, pitch, bearing }, duration)
   }
 
   /** Start screen: the Grätzl looks like the rest of the city; it gets its houses and colours once you fly in */
