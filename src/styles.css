@@ -1042,11 +1042,27 @@ button { color: inherit; }
 @keyframes hint-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
 @media (max-width: 720px) { .hold-hint { max-width: calc(100% - 32px); border-radius: 14px; } }
 @media (prefers-reduced-motion: reduce) { .hold-hint { animation: none; } }
+/* the note sits right under the Icons | Pläne switch at the top, with an arrow pointing up at it */
+/* width: max-content, else left: 50% leaves it only half the screen and it gets narrow and tall on phones */
+.hold-hint { top: 68px; bottom: auto; width: max-content; border-radius: 14px; animation-name: hint-in-top; }
+/* the explanation fades in a moment after you arrive in the area; the note while holding comes at once */
+.hold-hint { animation-delay: .9s; }
+.hold-hint::before {
+  content: ''; position: absolute; left: 50%; top: -6px; width: 12px; height: 12px; margin-left: -6px;
+  background: inherit; transform: rotate(45deg); border-radius: 2px 0 0 0;
+}
+@keyframes hint-in-top { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translateX(-50%); } }
+/* the same easing as the note above the main switch at the start */
+.hold-hint { animation-duration: .45s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+.hold-hint.is-leaving { animation: hint-out-top .3s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes hint-out-top { from { opacity: 1; transform: translateX(-50%); } to { opacity: 0; transform: translate(-50%, -8px); } }
+@media (max-width: 720px) { .hold-hint { top: calc(60px + env(safe-area-inset-top)); } }
 
 /* traffic tour: a card with Weiter / Zurück (left on wide screens, above the main switch on phones) */
-.map-top { display: flex; align-items: center; gap: 8px; }
+/* as wide as its content: from left 50% it would otherwise get only half the screen and squeeze both parts on phones */
+.map-top { display: flex; align-items: center; gap: 8px; width: max-content; }
 .tour-info {
-  width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: rgba(255, 250, 241, .82); color: #14523b;
+  flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: rgba(255, 250, 241, .82); color: #14523b;
   font: 700 13px/1 'Figtree', system-ui, sans-serif; box-shadow: 0 0 0 1px rgba(0, 60, 43, .1);
 }
 .tour-info:focus-visible { outline: 2px solid #14523b; outline-offset: 2px; }
@@ -1298,3 +1314,10 @@ button { color: inherit; }
 .about-contact { display: flex; flex-direction: column; gap: 3px; margin-top: 20px; padding: 16px 18px; border-radius: 12px; background: #e3f4e6; color: #123f32; }
 .about-contact strong { font: 700 16px/1.3 'Figtree', system-ui, sans-serif; color: #003c2b; }
 .about-contact a { font-weight: 700; color: #17603f; text-underline-offset: 3px; word-break: break-word; }
+
+/* Garagen, Aktuell: the parked-up street */
+.map-mark.is-jam .mark-icon { background: #d9453b; color: #fffaf1; }
+
+
+/* garages: while the camera travels to the next station the card waits unseen; it plays its entrance again once there */
+.tour-card.is-waiting { visibility: hidden; animation: none; }

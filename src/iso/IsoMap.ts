@@ -99,6 +99,8 @@ const COLORS = {
   accentRoof: '#ffe066',
   trunk: '#a08a74',
 }
+/** how long you press on the map until the scanned plans show (ms) */
+const HOLD_MS = 380
 const TREE_GREENS = ['#7fbf68', '#8fca76', '#76b65f', '#9ad283']
 /** Outside the Grätzl the map is washed out like under the Mapbox focus mask; parks and water keep a soft tint */
 const OUTSIDE = { green: '#dcf0bc', water: '#a9d6ec', sport: '#e3eedb', trees: ['#cfe0c6', '#d6e5ce', '#c8dbbe'] }
@@ -347,6 +349,45 @@ function flowRibbon(route: [number, number][], width: number, shift: number, cap
   return geometry
 }
 
+/** how far before and after a bend the lane starts to curve (m) */
+const BEND_REACH = 11
+
+/**
+ * The line a traffic lane runs on: shifted to the right-hand side of its route, with every bend rounded into a curve.
+ * So the arrows drive round the corner, instead of being kinked and squashed on a sharp one.
+ */
+function lanePath(route: [number, number][], shift: number): [number, number][] {
+  type P = [number, number]
+  const unit = (a: P, b: P): P => { const length = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / length, (b[1] - a[1]) / length] }
+  const shifted = route.map((point, i): P => {
+    const before = i > 0 ? unit(route[i - 1], point) : null
+    const after = i < route.length - 1 ? unit(point, route[i + 1]) : null
+    // right of the direction (dx, dy) is (dy, -dx)
+    const a: P = before ? [before[1], -before[0]] : [after![1], -after![0]]
+    const b: P = after ? [after[1], -after[0]] : a
+    const length = Math.hypot(a[0] + b[0], a[1] + b[1]) || 1
+    const right: P = [(a[0] + b[0]) / length, (a[1] + b[1]) / length]
+    const stretch = 1 / Math.max(0.45, right[0] * a[0] + right[1] * a[1])
+    return [point[0] + right[0] * shift * stretch, point[1] + right[1] * shift * stretch]
+  })
+  const path: P[] = [shifted[0]]
+  for (let i = 1; i < shifted.length - 1; i++) {
+    const previous = shifted[i - 1], corner = shifted[i], next = shifted[i + 1]
+    // at most just under half of a neighbouring piece, so two bends close together do not run into each other
+    const reach = Math.min(BEND_REACH, Math.hypot(corner[0] - previous[0], corner[1] - previous[1]) * 0.48, Math.hypot(next[0] - corner[0], next[1] - corner[1]) * 0.48)
+    const into = unit(previous, corner), out = unit(corner, next)
+    const start: P = [corner[0] - into[0] * reach, corner[1] - into[1] * reach]
+    const end: P = [corner[0] + out[0] * reach, corner[1] + out[1] * reach]
+    // many small steps, so the arrows bend smoothly
+    for (let step = 0; step <= 18; step++) {
+      const t = step / 18, u = 1 - t
+      path.push([u * u * start[0] + 2 * u * t * corner[0] + t * t * end[0], u * u * start[1] + 2 * u * t * corner[1] + t * t * end[1]])
+    }
+  }
+  path.push(shifted[shifted.length - 1])
+  return path
+}
+
 /** Lets a ribbon grow along its route: everything beyond `uniform.value` (0..1 of the route) is still hidden, with a soft edge. */
 function growsAlongRoute(material: THREE.MeshBasicMaterial, uniform: { value: number }) {
   material.onBeforeCompile = (shader) => {
@@ -364,9 +405,10 @@ function growsAlongRoute(material: THREE.MeshBasicMaterial, uniform: { value: nu
 /** Soft lane with chevrons pointing along +u; scrolling the texture makes the traffic flow. */
 function flowTexture(color: string) {
   const canvas = document.createElement('canvas')
-  canvas.width = 96
-  canvas.height = 64
+  canvas.width = 192
+  canvas.height = 128
   const context = canvas.getContext('2d')!
+  context.scale(2, 2)
   context.fillStyle = color
   context.globalAlpha = 0.42
   context.fillRect(0, 6, 96, 52)
@@ -374,13 +416,13 @@ function flowTexture(color: string) {
   context.lineCap = 'round'
   context.lineJoin = 'round'
   // white outline first, so the arrows stay legible on lawns and trees
-  for (const [stroke, width] of [['#ffffff', 28], [color, 19]] as const) {
+  for (const [stroke, width] of [['#ffffff', 23], [color, 14]] as const) {
     context.strokeStyle = stroke
     context.lineWidth = width
     context.beginPath()
-    context.moveTo(24, 15)
-    context.lineTo(68, 32)
-    context.lineTo(24, 49)
+    context.moveTo(27, 16)
+    context.lineTo(69, 32)
+    context.lineTo(27, 48)
     context.stroke()
   }
   const texture = new THREE.CanvasTexture(canvas)
@@ -642,6 +684,7 @@ export class IsoMap {
   private coolTexture: THREE.CanvasTexture | null = null
   /** trees the map already has (x, z, crown radius): new trees keep clear of them */
   private standingTrees: { x: number; z: number; r: number }[] = []
+  private standingMeshes: { meshes: THREE.InstancedMesh[]; matrices: THREE.Matrix4[][] } | null = null
   private trafficPedMaterial: THREE.MeshBasicMaterial | null = null
   private trafficLeaving: { start: number; meshes: THREE.Mesh[]; materials: THREE.MeshBasicMaterial[]; textures: THREE.CanvasTexture[]; flowTexture: THREE.CanvasTexture | null; speed: number } | null = null
 
@@ -785,26 +828,30 @@ export class IsoMap {
     // pins and the controls keep their own taps
     if ((event.target as Element | null)?.closest('.iso-pin, .iso-cluster, button, a')) return
     this.holdStart = { x: event.clientX, y: event.clientY }
-    if (this.holdTimer !== null) window.clearTimeout(this.holdTimer)
+    this.cancelHoldTimer()
+    // a second finger means pinching, not holding
+    if (!event.isPrimary) return
     this.holdTimer = window.setTimeout(() => {
       this.holdTimer = null
       this.holdActive = true
       this.suppressClick = true
       this.hideInfoTooltip()
       this.callbacks.onHoldPlans?.(true)
-    }, 380)
+    }, HOLD_MS)
   }
+  private cancelHoldTimer() {
+    if (this.holdTimer === null) return
+    window.clearTimeout(this.holdTimer)
+    this.holdTimer = null
+  }
+
   private handleHoldMove = (event: PointerEvent) => {
     if (this.holdTimer !== null && Math.hypot(event.clientX - this.holdStart.x, event.clientY - this.holdStart.y) > 8) {
-      window.clearTimeout(this.holdTimer)
-      this.holdTimer = null
+      this.cancelHoldTimer()
     }
   }
   private handleHoldEnd = () => {
-    if (this.holdTimer !== null) {
-      window.clearTimeout(this.holdTimer)
-      this.holdTimer = null
-    }
+    this.cancelHoldTimer()
     if (this.holdActive) {
       this.holdActive = false
       this.callbacks.onHoldPlans?.(false)
@@ -863,7 +910,7 @@ export class IsoMap {
     })
     growsAlongRoute(material, this.trafficReveal)
     const add = (route: [number, number][], shift: number) => {
-      const mesh = new THREE.Mesh(flowRibbon(route, 8, shift), material)
+      const mesh = new THREE.Mesh(flowRibbon(lanePath(route, shift), 8, 0), material)
       mesh.renderOrder = 40
       this.scene.add(mesh)
       this.trafficMeshes.push(mesh)
@@ -1128,6 +1175,7 @@ export class IsoMap {
       })
     })
     this.treeObjects = []
+    this.hideStandingTrees(on ? this.treeSpots() : [])
     if (!on) return
     const crownGeometry = new THREE.IcosahedronGeometry(1, 1)
     const trunkGeometry = new THREE.CylinderGeometry(0.18, 0.26, 1, 5)
@@ -1153,6 +1201,18 @@ export class IsoMap {
       crown.userData.scale = crown.scale.clone()
       this.scene.add(tree)
       this.treeObjects.push(tree)
+    })
+  }
+
+  /** Where a new tree stands right on a tree the map already has, the old one steps aside (two crowns in one flicker) */
+  private hideStandingTrees(spots: { x: number; z: number }[]) {
+    if (!this.standingMeshes) return
+    const { meshes, matrices } = this.standingMeshes
+    const hidden = new THREE.Matrix4().makeScale(0, 0, 0)
+    const covered = this.standingTrees.map((tree) => spots.some((spot) => Math.hypot(spot.x - tree.x, spot.z - tree.z) < 3.5))
+    meshes.forEach((mesh, m) => {
+      covered.forEach((isCovered, i) => mesh.setMatrixAt(i, isCovered ? hidden : matrices[m][i]))
+      mesh.instanceMatrix.needsUpdate = true
     })
   }
 
@@ -2244,6 +2304,10 @@ export class IsoMap {
     crowns.castShadow = true
     trunks.castShadow = true
     this.scene.add(crowns, trunks)
+    this.standingMeshes = {
+      meshes: [crowns, trunks],
+      matrices: [crowns, trunks].map((mesh) => standing.map((_, i) => { const m = new THREE.Matrix4(); mesh.getMatrixAt(i, m); return m })),
+    }
     this.graetzlObjects.push(crowns, trunks)
     // trees outside the Grätzl are left out, the surroundings stay calm
 

@@ -38,6 +38,14 @@ const LOADING_ZONES: { at: [number, number]; length: number }[] = [
   { at: [81.6, 55.5], length: 20 },
   { at: [83.3, -83.5], length: 16 },
 ]
+/** the street that shows the problem today: Badgasse from the Reznicekgasse to the Lichtentaler Gasse, parked up on both sides */
+const JAM_STREET: [number, number][] = [[42.8, 184.8], [82.5, 41.2]]
+/** middle of the close-up on that street, and where its symbol stands */
+const JAM_CENTRE: [number, number] = [63.5, 111]
+/** how many cars of the parked-up Badgasse drive into the garage under the Bahnhof (the rest just fade away), so the step stays short */
+const JAM_TO_STATION = 16
+/** parked cars keep this far from the middle of a crossing (m) */
+const CROSSING_CLEAR = 13
 /** cars are drawn a bit larger than life, so they read at the distances the tour looks from */
 const CAR_SCALE = 1.5
 const CAR_COLOURS = ['#d8d3ca', '#8e99a6', '#45525f', '#b4574d', '#ece8e1', '#6a86a3', '#c9b48f', '#3c4a3f']
@@ -63,6 +71,10 @@ function distanceToRing(ring: Ring, x: number, y: number) {
     best = Math.min(best, Math.hypot(x - (ax + dx * t), y - (ay + dy * t)))
   }
   return best
+}
+
+function distanceToPath(path: Ring, x: number, y: number) {
+  return Math.min(...path.slice(1).map((point, i) => distanceToRing([path[i], point], x, y)))
 }
 
 const world = (x: number, y: number, height = 0) => new THREE.Vector3(x, height, -y)
@@ -144,6 +156,7 @@ function loadingTexture() {
 
 const ICONS = {
   parking: '<b>P</b>',
+  jam: '<b>!</b>',
   sharing: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16V11l2-4.5h10L19 11v5" /><path d="M3.5 16h17" /><circle cx="7.5" cy="16.5" r="1.6" /><circle cx="16.5" cy="16.5" r="1.6" /><path d="M9 4.5c1.8-1.4 4.2-1.4 6 0" /></svg>',
   loading: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9h-11z" /><path d="M13.5 9.5h4l3 3v3h-7" /><circle cx="6" cy="17" r="1.6" /><circle cx="17" cy="17" r="1.6" /></svg>',
 }
@@ -341,11 +354,33 @@ export class GarageScene {
       return { ...spot, length }
     })
 
+    // --- 0 Today: the Badgasse parked up bumper to bumper (never in a crossing). These are the cars that drive into
+    // the garage under the Bahnhof at the first measure, so you see the street clear up.
+    const jam: Spot[] = []
+    const nearCrossing = (x: number, y: number) => [...crossings, ...JAM_STREET.map(([cx, cy]) => ({ x: cx, y: cy }))].some((node) => Math.hypot(node.x - x, node.y - y) < CROSSING_CLEAR)
+    streets.forEach(([x1, y1, x2, y2]) => {
+      const length = Math.hypot(x2 - x1, y2 - y1)
+      if (distanceToPath(JAM_STREET, (x1 + x2) / 2, (y1 + y2) / 2) > 7) return
+      const angle = Math.atan2(y2 - y1, x2 - x1)
+      for (const side of [-1, 1]) {
+        for (let along = 3.5; along < length - 3; along += 6.8) {
+          const x = x1 + Math.cos(angle) * along - Math.sin(angle) * 4 * side
+          const y = y1 + Math.sin(angle) * along + Math.cos(angle) * 4 * side
+          if (nearCrossing(x, y)) continue
+          if (buildings.some((ring) => pointInRing(ring, x, y) || distanceToRing(ring, x, y) < 0.8)) continue
+          if (jam.some((other) => Math.hypot(other.x - x, other.y - y) < 6.4)) continue
+          jam.push({ x, y, angle })
+        }
+      }
+    })
+    // the street's own parked cars become part of the queue (no two cars on one spot)
+    for (let i = homes.length - 1; i >= 0; i--) if (jam.some((spot) => Math.hypot(spot.x - homes[i].x, spot.y - homes[i].y) < 6.4) || nearCrossing(homes[i].x, homes[i].y)) homes.splice(i, 1)
+
     // bays in the middle of the station complex: rows of cars side by side, in line with the walls of the building
     const stationMain = largest(station)
     const stationCentre: [number, number] = stationMain ? ringCentre(stationMain) : [215, -60]
     this.stationLabel = [stationCentre[0], stationCentre[1] + 30]
-    if (stationMain) this.stationSlots = slotsIn([stationMain], 18, 7, 12)
+    if (stationMain) this.stationSlots = slotsIn([stationMain], JAM_TO_STATION, 7, 12)
     // bays inside the house Liechtensteinstraße 87–89, along its longest wall
     const garageSlots = slotsIn(garage, 10, 4.2, 8.4)
     const garageMain = largest(garage)
@@ -359,7 +394,7 @@ export class GarageScene {
       while (n < Math.min(count, free.length) && Math.hypot(free[n].home.x - x, free[n].home.y - y) <= within) n++
       return free.splice(0, n).map((entry) => entry.home)
     }
-    const toStation = take(this.stationSlots.length, 150, -20)
+    const toStation = take(Math.max(0, this.stationSlots.length - jam.length), 150, -20)
     const toGarage = take(garageSlots.length, garageCentre[0] + 30, garageCentre[1])
     const replaced = this.sharingSpots.flatMap((spot, i) => take(i === 0 ? 3 : 2, spot.x, spot.y, 45))
     const cleared = this.loadingSpots.flatMap((spot) => take(2, spot.x, spot.y, 13))
@@ -372,11 +407,22 @@ export class GarageScene {
       const tint = CAR_COLOURS[colour++ % CAR_COLOURS.length]
       const object = makeCar(geometries, tint, false, stage === 0 ? shared : undefined)
       const order = queue.get(stage) ?? 0
-      queue.set(stage, order + 1)
+      // only the cars that drive set off one after the other; the ones that fade go along with them
+      if (!vanish) queue.set(stage, order + 1)
       this.root.add(object)
       this.cars.push({ object, home, target, stage, order, vanish, placed: 'home', anim: null, fadeIn: null })
     }
-    toStation.forEach((home, i) => addCar(home, this.stationSlots[i], STAGE_INDEX.station, null))
+    // the Badgasse cars set off first, then the others
+    // a spread-out dozen of them drives over, the others fade away on their spots at the same time
+    const every = Math.max(1, jam.length / Math.max(1, this.stationSlots.length))
+    const driving = new Set(this.stationSlots.map((_, i) => Math.floor(i * every)))
+    let slot = 0
+    jam.forEach((home, i) => {
+      const target = driving.has(i) ? this.stationSlots[slot++] : undefined
+      addCar(home, target ?? home, STAGE_INDEX.station, target ? null : 'fade')
+    })
+    toStation.forEach((home, i) => addCar(home, this.stationSlots[jam.length + i], STAGE_INDEX.station, null))
+    this.addMark('start', 'jam', 'Parkplatznot', JAM_CENTRE[0], JAM_CENTRE[1], 3)
     toGarage.forEach((home, i) => addCar(home, garageSlots[i], STAGE_INDEX.garage, null))
     replaced.forEach((home) => addCar(home, home, STAGE_INDEX.sharing, 'fade'))
     cleared.forEach((home) => addCar(home, home, STAGE_INDEX.loading, 'fade'))
@@ -442,6 +488,7 @@ export class GarageScene {
 
   /** Is something of a stage on the map? At the Ladezonen step only the loading zones show (the rest comes back with Neu) */
   private shows(index: number, objectStage: number) {
+    if (objectStage === STAGE_INDEX.start) return index === STAGE_INDEX.start
     if (index === STAGE_INDEX.loading) return objectStage === STAGE_INDEX.loading
     return index >= objectStage
   }
@@ -594,7 +641,8 @@ export class GarageScene {
     const points: [number, number][] = []
     let margin = { start: 12, station: 30, garage: 22, sharing: 0, loading: 26, all: 12 }[stage]
     const homesOf = (index: number) => this.cars.filter((car) => car.stage === index).forEach((car) => points.push([car.home.x, car.home.y]))
-    if (stage === 'start' || stage === 'all') {
+    if (stage === 'start') return { x: JAM_CENTRE[0], y: JAM_CENTRE[1] + 2, width: 105, height: 165 }
+    if (stage === 'all') {
       this.input.focus.forEach((p) => points.push(p))
       this.input.station.forEach((ring) => ring.forEach((p) => points.push(p)))
     } else if (stage === 'station' && close && this.stationSlots.length) {
@@ -602,8 +650,12 @@ export class GarageScene {
       points.push([this.stationLabel[0], this.stationLabel[1] + 8])
       margin = 45
     } else if (stage === 'station') {
-      this.input.station.forEach((ring) => ring.forEach((p) => points.push(p)))
-      homesOf(STAGE_INDEX.station)
+      // only where the cars set off and where they park (not the whole large station complex), so the camera
+      // does not first swing far out and then back in
+      this.stationSlots.forEach((slot) => points.push([slot.x, slot.y]))
+      points.push([this.stationLabel[0], this.stationLabel[1] + 8])
+      this.cars.filter((car) => car.stage === STAGE_INDEX.station && !car.vanish).forEach((car) => points.push([car.home.x, car.home.y]))
+      margin = 20
     } else if (stage === 'garage' && close && this.input.garage.length) {
       this.input.garage.forEach((ring) => ring.forEach((p) => points.push(p)))
       margin = 32
@@ -613,7 +665,8 @@ export class GarageScene {
       homesOf(STAGE_INDEX.garage)
     } else if (stage === 'sharing') {
       const spot = this.sharingSpots[0] ?? { x: SHARING_SPOTS[0][0], y: SHARING_SPOTS[0][1] }
-      return { x: spot.x + 6, y: spot.y + 8, width: 100, height: 85 }
+      // close on the car-sharing car (a little room above it for its symbol)
+      return { x: spot.x, y: spot.y + 4, width: 72, height: 60 }
     } else {
       this.loadingSpots.forEach((zone) => points.push([zone.x, zone.y]))
     }

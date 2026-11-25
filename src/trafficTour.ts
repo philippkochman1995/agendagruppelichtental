@@ -75,31 +75,37 @@ export const firstTreeStepOf = (view: TreesView) => treeSteps.findIndex((step) =
  * The map shows parked cars on the streets that move into the garages step by step.
  */
 export type GarageMeasure = 'station' | 'garage' | 'sharing' | 'loading'
-export interface GarageStep { stage: GarageMeasure; label: string; title: string; text: string }
+export interface GarageStep { stage: GarageMeasure | 'start'; label: string; title: string; text: string }
 
 export const garageSteps: GarageStep[] = [
   {
+    stage: 'start',
+    label: 'Aktuell',
+    title: 'Aktuell: Parkplatznot',
+    text: 'Die Gassen sind zugeparkt, Stoßstange an Stoßstange auf beiden Seiten. Wer einen Parkplatz sucht, dreht oft mehrere Runden. Für Bäume, Sitzplätze oder Lieferungen bleibt kaum Platz.',
+  },
+  {
     stage: 'station',
     label: 'Bahnhof',
-    title: 'Garagenstellplätze unter dem Franz-Josefs-Bahnhof schaffen',
+    title: 'Neu: Garagenstellplätze unter dem Franz-Josefs-Bahnhof schaffen',
     text: 'Unter dem Franz-Josefs-Bahnhof stehen noch viele Flächen frei, die ohne große Umbauten ideal für Parkplätze genutzt werden können. Gerade für Anrainer:innen, die ihr Auto einmal pro Woche nutzen, ist das eine sehr passende Alternative zum Parken im öffentlichen Raum.',
   },
   {
     stage: 'garage',
     label: 'Garage',
-    title: 'Leerstehende Garagen im Grätzl besser nutzen',
+    title: 'Neu: Leerstehende Garagen im Grätzl besser nutzen',
     text: 'Die Garagen im Grätzl sind zu einem Großteil nicht ausgelastet. Durch gezielte Förderungen wird das Parken dort attraktiver. Das bietet sich vor allem für Nachbar:innen an, die in ihrer Mobilität eingeschränkt sind, da für sie ein weiter entfernter Garagenplatz keine Lösung ist.',
   },
   {
     stage: 'sharing',
     label: 'Sharing',
-    title: 'Die gemeinsame Nutzung von Verkehrsmitteln',
+    title: 'Neu: Die gemeinsame Nutzung von Verkehrsmitteln',
     text: 'Damit nicht jede:r auf ein eigenes Auto angewiesen ist, braucht es ein niederschwelliges und leistbares Shared Mobility Angebot.',
   },
   {
     stage: 'loading',
     label: 'Ladezonen',
-    title: 'Spezialisierte Parkplätze',
+    title: 'Neu: Spezialisierte Parkplätze',
     text: 'Für Geschäfte und Dienstleister:innen im Lichtental gibt es ausgewiesene Ladezonen. Und natürlich werden bei Bedarf auch Behindertenparkplätze gezielt ausgebaut, damit die, die sie dringend brauchen, auch tatsächlich einen freien Platz finden. Diese Maßnahmen entfalten ihre größte Wirkung nicht einzeln, sondern zusammen.',
   },
 ]

@@ -102,7 +102,7 @@ export interface TourInsets { sideWidth?: number; bottom?: number }
  * Verkehr, Bäume and Garagen each have a quiet switch at the top centre (Aktuell | Supergrätzl) and a short guided
  * tour (Weiter) in a card: at the side next to the Grätzl on wide screens, above the main switch on phones.
  */
-export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep, onTourClose, onTourInsets, cardLeft, treeStep, onTreeStep, onTreeClose, treesView, onTreesView, garageStep, onGarageStep, onGarageClose, garageView, onGarageView }: {
+export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep, onTourClose, onTourInsets, cardLeft, treeStep, onTreeStep, onTreeClose, treesView, onTreesView, garageStep, onGarageStep, onGarageClose, garageView, onGarageView, cardWaiting = false }: {
   mode: AppMode
   onMode: (mode: AppMode) => void
   traffic: TrafficMode
@@ -123,6 +123,8 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
   onGarageClose: () => void
   garageView: GarageView
   onGarageView: (view: GarageView) => void
+  /** the camera is on its way: the card waits invisibly (it keeps its room) and fades in once the camera is there */
+  cardWaiting?: boolean
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -145,12 +147,15 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
   }
   if (mode === 'garages' && garageStep !== null) {
     const step = garageSteps[garageStep]
+    const today = step.stage === 'start'
+    const same = garageSteps.filter((candidate) => (candidate.stage === 'start') === today)
     card = {
-      key: `g${garageStep}`, title: step.title, text: step.text, tone: `is-garage${step.stage === 'sharing' ? ' is-sharing' : step.stage === 'loading' ? ' is-loading' : ''}`, index: garageStep + 1, count: garageSteps.length,
+      key: `g${garageStep}`, title: step.title, text: step.text, tone: today ? 'is-bestand' : `is-garage${step.stage === 'sharing' ? ' is-sharing' : step.stage === 'loading' ? ' is-loading' : ''}`, index: same.indexOf(step) + 1, count: same.length,
       last: garageStep + 1 >= garageSteps.length, next: () => (garageStep + 1 < garageSteps.length ? onGarageStep(garageStep + 1) : onGarageClose()),
     }
   }
   const cardOpen = card !== null
+  const shownGarageView: GarageView = garageStep === null ? garageView : garageSteps[garageStep].stage === 'start' ? 'bestand' : 'neu'
 
   // tell the map how much room the card takes, so the Grätzl is fitted into the rest
   useEffect(() => {
@@ -183,12 +188,12 @@ export function MapDock({ mode, onMode, traffic, onTraffic, tourStep, onTourStep
       )}
       {mode === 'garages' && (
         <div className="map-top">
-          <SegmentedControl options={trafficOptions} value={garageStep !== null ? 'neu' : garageView} onChange={onGarageView} label="Garagen: aktuell oder Supergrätzl" size="sm" tone={garageStep !== null || garageView === 'neu' ? 'green' : 'red'} />
-          <button type="button" className={`tour-info ${garageStep !== null ? 'is-on' : ''}`} aria-pressed={garageStep !== null} aria-label="Garagen-Initiative erklären" onClick={() => (garageStep === null ? onGarageStep(0) : onGarageClose())}>?</button>
+          <SegmentedControl options={trafficOptions} value={shownGarageView} onChange={onGarageView} label="Garagen: aktuell oder Supergrätzl" size="sm" tone={shownGarageView === 'neu' ? 'green' : 'red'} />
+          <button type="button" className={`tour-info ${garageStep !== null ? 'is-on' : ''}`} aria-pressed={garageStep !== null} aria-label="Garagen-Initiative erklären" onClick={() => (garageStep === null ? onGarageStep(garageView === 'bestand' ? 0 : 1) : onGarageClose())}>?</button>
         </div>
       )}
       {card && (
-        <div className={`tour-card ${card.tone}`} ref={cardRef} style={window.innerWidth > 720 && cardLeft !== null ? { left: cardLeft, right: 'auto' } : undefined} role="dialog" aria-label="Erklärung" key={card.key}>
+        <div className={`tour-card ${card.tone} ${cardWaiting ? 'is-waiting' : ''}`} ref={cardRef} style={window.innerWidth > 720 && cardLeft !== null ? { left: cardLeft, right: 'auto' } : undefined} role="dialog" aria-label="Erklärung" key={card.key}>
           <div className="tour-text">
             <strong>{card.title}</strong>
             <p>{card.text}</p>

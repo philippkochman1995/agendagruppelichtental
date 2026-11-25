@@ -11,7 +11,7 @@ import { glyphDataUrl } from './cleanMarkers'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TrafficMode } from './traffic'
 import { AboutPanel } from './AboutPanel'
-import { MapDock, readTourDone, writeTourDone, type AppMode, type GarageView, type TourInsets, type TreesView } from './MapDock'
+import { MapDock, SegmentedControl, readTourDone, writeTourDone, type AppMode, type GarageView, type TourInsets, type TreesView } from './MapDock'
 import { PARK_FOCUS, firstStepOf, firstTreeStepOf, garageSteps, tourSteps, treeSteps } from './trafficTour'
 import { categories, initialVisibleCategoryIds, mapLayers } from './layers'
 import { featureHasDetail, getDemoDetail } from './demoDetails'
@@ -60,13 +60,18 @@ function App() {
   const [selected, setSelected] = useState<FeatureSummary | null>(null)
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [holding, setHolding] = useState(false)
+  /** Grätzl-Ideen inside an area: the switch at the top centre shows the icons or the scanned plans */
+  const [ideasView, setIdeasView] = useState<'icons' | 'plans'>('icons')
   const [holdHintDone, setHoldHintDone] = useState(false)
+  const [hintLeaving, setHintLeaving] = useState(false)
   const [tourStep, setTourStep] = useState<number | null>(null)
   const [tourInsets, setTourInsets] = useState<TourInsets | null>(null)
   const [cardLeft, setCardLeft] = useState<number | null>(null)
   const [treeStep, setTreeStep] = useState<number | null>(null)
   const [garageStep, setGarageStep] = useState<number | null>(null)
   const [garageView, setGarageView] = useState<GarageView>('bestand')
+  /** garages: the card steps aside while the camera travels to the next station, and comes back once it is there */
+  const [cardWaiting, setCardWaiting] = useState(false)
   const [treesView, setTreesView] = useState<TreesView>('neu')
   const holdPlansRef = useRef<(active: boolean) => void>(() => {})
   const [traffic, setTraffic] = useState<TrafficMode>('bestand')
@@ -199,8 +204,6 @@ function App() {
   const holdPlans = useCallback((active: boolean) => {
     // only the ideas mode peeks at the scans; trees and traffic keep their own picture
     if (appModeRef.current !== 'ideas') return
-    isoRef.current?.setPlansVisible(active)
-    isoRef.current?.setPinsHidden(active)
     setHolding(active)
     if (active) setHoldHintDone(true)
   }, [])
@@ -209,15 +212,40 @@ function App() {
   // the layover stays for a few seconds once you are in an area, then gets out of the way
   useEffect(() => {
     if (!isAreaView || appMode !== 'ideas' || holdHintDone) return
-    const timer = window.setTimeout(() => setHoldHintDone(true), 9000)
+    const timer = window.setTimeout(() => setHintLeaving(true), 7000)
     return () => window.clearTimeout(timer)
+  }, [isAreaView, appMode, holdHintDone])
+  // it fades out softly before it goes
+  useEffect(() => {
+    if (!hintLeaving) return
+    const timer = window.setTimeout(() => { setHoldHintDone(true); setHintLeaving(false) }, 300)
+    return () => window.clearTimeout(timer)
+  }, [hintLeaving])
+  // ... and goes as soon as you touch or click anywhere
+  useEffect(() => {
+    if (!isAreaView || appMode !== 'ideas' || holdHintDone) return
+    const dismiss = () => setHintLeaving(true)
+    window.addEventListener('pointerdown', dismiss, true)
+    return () => window.removeEventListener('pointerdown', dismiss, true)
   }, [isAreaView, appMode, holdHintDone])
 
   // Grätzl-Ideen: the pedestrian zones of the new concept, once you are inside an area (not at the start view)
   useEffect(() => {
     // while the scans show (hold), the zones step aside so the plans are readable
-    isoRef.current?.setBasePedestrianZones(appMode === 'ideas' && isAreaView && !holding)
-  }, [appMode, isAreaView, holding])
+    isoRef.current?.setBasePedestrianZones(appMode === 'ideas' && isAreaView && (ideasView === 'plans') === holding)
+  }, [appMode, isAreaView, holding, ideasView])
+
+  // the plans show while held, or as long as the switch says so; leaving the area goes back to the icons
+  const inArea = isAreaView || isZoneFocused
+  useEffect(() => { if (!inArea || appMode !== 'ideas') setIdeasView('icons') }, [inArea, appMode])
+  useEffect(() => {
+    const iso = isoRef.current
+    if (!iso || appMode !== 'ideas') return
+    // holding shows the other view for a moment: the plans over the icons, or the icons over the plans
+    const plans = (ideasView === 'plans') !== holding
+    iso.setPlansVisible(plans)
+    iso.setPinsHidden(plans)
+  }, [appMode, holding, ideasView])
 
   // the note shows for a few seconds once the map and its controls are there, then the area names appear
   useEffect(() => {
@@ -353,7 +381,7 @@ function App() {
       setTreeStep(seen ? null : 0)
       writeTourDone('trees')
     } else {
-      // garages: the first time the parked cars first (Bestand), then straight on to the first station
+      // garages: the first time the problem today (parked-up streets), then on to the measures
       const seen = readTourDone('garages')
       if (!seen) iso.setGarageStage('start')
       setGarageView(seen ? 'neu' : 'bestand')
@@ -366,24 +394,28 @@ function App() {
   useEffect(() => {
     const iso = isoRef.current
     if (appMode === 'ideas' || !iso) return
+    // at the Bahnhof and the garage the camera goes straight to the close view, in one move, while the cars arrive
+    const garageStage = appMode === 'garages' && garageStep !== null ? garageSteps[garageStep].stage : null
+    const closeUp = garageStage === 'station' || garageStage === 'garage'
     const cardOpen = appMode === 'traffic' ? tourStep !== null : appMode === 'trees' ? treeStep !== null : garageStep !== null
     const focus = appMode === 'traffic' && tourStep !== null && tourSteps[tourStep].focus === 'park' ? PARK_FOCUS
       : appMode === 'trees' && treeStep !== null && treeSteps[treeStep].cool ? iso.coolFocus()
         // trees: Aktuell close on the park, Neu a bit wider (the new trees, not the whole Grätzl)
         : appMode === 'trees' && treeStep === 0 ? TREES_PARK_FOCUS
         : appMode === 'trees' && treeStep === 1 ? PARK_FOCUS
-        : appMode === 'garages' ? iso.garageFocus(garageStep === null ? 'all' : garageSteps[garageStep].stage) : undefined
-    const beside = cardOpen && tourInsets?.sideWidth ? { width: tourInsets.sideWidth, gap: 28 } : undefined
+        : appMode === 'garages' ? iso.garageFocus(garageStep === null ? 'all' : garageSteps[garageStep].stage, closeUp) : undefined
+    // the parked-up Badgasse sits in the middle of the screen (seen straight from above, not leaning), the card stays at the right edge
+    // (only where the card at the right edge leaves the middle free; on narrower screens it stands beside the street as usual)
+    const streetCentred = appMode === 'garages' && garageStep !== null && garageSteps[garageStep].stage === 'start'
+      && !!tourInsets?.sideWidth && window.innerWidth - 24 - tourInsets.sideWidth > window.innerWidth / 2 + 90
+    const beside = cardOpen && tourInsets?.sideWidth && !streetCentred ? { width: tourInsets.sideWidth, gap: 28 } : undefined
     const insets = cardOpen ? { left: 8, right: 8, bottom: tourInsets?.bottom } : {}
     const view = iso.trafficView(focus, insets, beside)
     setCardLeft(view.cardLeft ?? null)
+    const travelling = appMode === 'garages' && garageStep !== null && garageStep > 0
+    setCardWaiting(travelling)
     let cancelled = false
-    void iso.flyTo(view, 1000).then(() => {
-      // at the Bahnhof and the garage the camera moves in closer while the cars arrive
-      if (cancelled || appMode !== 'garages' || garageStep === null) return
-      const stage = garageSteps[garageStep].stage
-      if (stage === 'station' || stage === 'garage') void iso.flyTo(iso.trafficView(iso.garageFocus(stage, true), insets, beside), 2600)
-    })
+    void iso.flyTo(view, closeUp ? 2400 : 1000).then(() => { if (!cancelled) setCardWaiting(false) })
     return () => { cancelled = true }
   }, [appMode, tourStep, tourInsets, treeStep, garageStep])
 
@@ -683,10 +715,15 @@ function App() {
           </div>
         )}
 
-        {!introOpen && appMode === 'ideas' && (holding || (isAreaView && !holdHintDone)) && (
-          <div className={`hold-hint ${holding ? 'is-holding' : ''}`} role="status">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v8" /><path d="M9 7.5V6a1.5 1.5 0 0 1 3 0M15 9.5V8a1.5 1.5 0 0 0-3 0M18 12v-1a1.5 1.5 0 0 0-3 0" /><path d="M9 7.5v5.2l-1.6-1.7a1.6 1.6 0 0 0-2.3 2.2L9 18a5 5 0 0 0 3.6 1.5H14a4 4 0 0 0 4-4V12" /></svg>
-            <span>{holding ? 'Gescannte Pläne aus den Workshops' : 'Karte gedrückt halten, ohne sie zu ziehen: dann siehst du die Pläne aus den Workshops'}</span>
+        {!introOpen && appMode === 'ideas' && inArea && (
+          <div className="map-top">
+            <SegmentedControl options={[{ value: 'icons', label: 'Icons' }, { value: 'plans', label: 'Pläne' }]} value={ideasView} onChange={setIdeasView} label="Icons oder gescannte Pläne" size="sm" />
+          </div>
+        )}
+
+        {!introOpen && appMode === 'ideas' && isAreaView && !holdHintDone && (
+          <div className={`hold-hint ${hintLeaving ? 'is-leaving' : ''}`} role="status">
+            <span>Schalte oben zwischen Icons und Originalplänen um oder klicke auf die Karte und halte gedrückt, um die Ansicht zu wechseln</span>
           </div>
         )}
 
@@ -709,6 +746,7 @@ function App() {
             onGarageStep={goGarageStep}
             onGarageClose={closeGarageTour}
             garageView={garageView}
+            cardWaiting={cardWaiting}
             onGarageView={chooseGarageView}
             onTourInsets={(insets) => setTourInsets((current) => (current?.sideWidth === insets?.sideWidth && current?.bottom === insets?.bottom ? current : insets))}
           />
