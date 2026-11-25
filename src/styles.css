@@ -1091,10 +1091,15 @@ button { color: inherit; }
 /* wide screens: the tour card sits at the right edge instead of across the bottom */
 @media (min-width: 721px) {
   .tour-card {
-    left: auto; right: 24px; bottom: auto; top: 50%; width: 340px; padding: 18px 20px; border-radius: 2px; transform: translateY(-50%);
+    left: auto; right: 24px; bottom: auto; top: 50%; width: 420px; padding: 24px 28px 22px; border-radius: 2px; transform: translateY(-50%);
     flex-direction: column; align-items: stretch; gap: 12px; animation: tour-in-side .3s cubic-bezier(.2, .8, .2, 1) both;
   }
   .tour-actions { flex-direction: row; justify-content: flex-end; gap: 10px; }
+  /* wide screens: bigger card, bigger type */
+  .tour-card { font-size: 16px; line-height: 1.55; gap: 16px; }
+  .tour-card strong { margin-bottom: 4px; font-size: 18px; }
+  .tour-actions button { padding: 10px 16px; font-size: 15px; }
+  .tour-count { font-size: 12px; }
   @keyframes tour-in-side { from { opacity: 0; transform: translate(8px, -50%); } to { opacity: 1; transform: translateY(-50%); } }
 }
 

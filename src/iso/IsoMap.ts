@@ -1052,7 +1052,7 @@ export class IsoMap {
   coolFocus() {
     // straight from above, close on the Reznicekgasse towards its corner with the Liechtensteinstraße
     // (with all 134 spots the trees line the whole street, framing them all would be too far away)
-    return { x: -118, y: 118, width: 62, height: 42 }
+    return { x: -110, y: 120, width: 88, height: 60 }
   }
 
   /**
